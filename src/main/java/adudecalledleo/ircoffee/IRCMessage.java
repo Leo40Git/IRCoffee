@@ -5,10 +5,56 @@ import io.netty.util.internal.StringUtil;
 import java.util.*;
 
 public final class IRCMessage {
+    public static final class Builder {
+        private final IRCMessage message = new IRCMessage();
+
+        private Builder() { }
+
+        public Builder putTag(String key, String value) {
+            message.putTag(key, value);
+            return this;
+        }
+
+        public Builder putTag(String key) {
+            return putTag(key, "true");
+        }
+
+        public Builder setSource(String source) {
+            message.setSource(source);
+            return this;
+        }
+
+        public Builder setCommand(String command) {
+            message.setCommand(command);
+            return this;
+        }
+
+        public Builder addParam(String param) {
+            message.addParam(param);
+            return this;
+        }
+
+        public IRCMessage build() {
+            return message.copy();
+        }
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
     private final Map<String, String> tags = new HashMap<>();
     private String source = "";
-    private String command = "";
+    private String command;
     private final List<String> params = new ArrayList<>();
+
+    public IRCMessage(String command) {
+        this.command = command;
+    }
+
+    private IRCMessage() {
+        this("");
+    }
 
     public Map<String, String> getTags() {
         return tags;
@@ -20,6 +66,10 @@ public final class IRCMessage {
 
     public void putTag(String key, String value) {
         tags.put(key, value);
+    }
+
+    public String removeTag(String key) {
+        return tags.remove(key);
     }
 
     public String getSource() {
@@ -54,22 +104,24 @@ public final class IRCMessage {
         params.add(param);
     }
 
+    public String removeParam(int i) {
+        return params.remove(i);
+    }
+
     public void clearParams() {
         params.clear();
     }
 
     public IRCMessage copy() {
-        IRCMessage copy = new IRCMessage();
+        IRCMessage copy = new IRCMessage(command);
         copy.tags.putAll(tags);
         copy.source = source;
-        copy.command = command;
         copy.params.addAll(params);
         return copy;
     }
 
     public static IRCMessage command(String command, String... params) {
-        IRCMessage result = new IRCMessage();
-        result.command = command;
+        IRCMessage result = new IRCMessage(command);
         Collections.addAll(result.params, params);
         return result;
     }
