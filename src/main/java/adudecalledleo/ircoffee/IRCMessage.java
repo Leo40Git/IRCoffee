@@ -47,8 +47,6 @@ public final class IRCMessage {
     }
 
     public String getParam(int i) {
-        if (i < 0 || i > params.size())
-            return null;
         return params.get(i);
     }
 
@@ -81,7 +79,7 @@ public final class IRCMessage {
         if (string.startsWith("@")) {
             // tags
             int tagsEnd = string.indexOf(' ');
-            String tagsStr = string.substring(1, tagsEnd - 1);
+            String tagsStr = string.substring(1, tagsEnd);
             string = string.substring(tagsEnd + 1);
             String[] tagPairs = tagsStr.split(";");
             for (String key : tagPairs) {
@@ -97,7 +95,7 @@ public final class IRCMessage {
         if (string.startsWith(":")) {
             // source
             int srcEnd = string.indexOf(' ');
-            result.setSource(string.substring(1, srcEnd - 1));
+            result.setSource(string.substring(1, srcEnd));
             string = string.substring(srcEnd + 1);
         }
         // command & params
@@ -112,7 +110,7 @@ public final class IRCMessage {
         if (i == parts.length)
             return result;
         // trailing param
-        StringBuilder trailingSB = new StringBuilder(parts[i++].substring(1) + " ");
+        StringBuilder trailingSB = new StringBuilder(parts[i++].substring(1)).append(' ');
         for (; i < parts.length; i++)
             trailingSB.append(parts[i]).append(' ');
         trailingSB.setLength(trailingSB.length() - 1);

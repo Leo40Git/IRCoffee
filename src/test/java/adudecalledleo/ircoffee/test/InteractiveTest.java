@@ -8,7 +8,7 @@ import io.netty.util.internal.StringUtil;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
-public class OnlyTest {
+public class InteractiveTest {
     public static void main(String[] args) {
         IRCClient client = new IRCClient();
         client.onMessageReceived.register(System.err::println);
