@@ -25,9 +25,9 @@ public class InteractiveTest {
             } catch (NumberFormatException ignored) { }
         }
         System.out.print("Enter nickname (max 10 chars): ");
-        String nickname = trunc10(scanner.nextLine());
+        String nickname = scanner.nextLine();
         System.out.print("Enter username (max 10 chars): ");
-        String username = trunc10(scanner.nextLine());
+        String username = scanner.nextLine();
         System.out.print("Enter real name: ");
         String realName = scanner.nextLine();
         IRCClient client = new IRCClient();
@@ -60,11 +60,5 @@ public class InteractiveTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private static String trunc10(String str) {
-        if (str.length() <= 10)
-            return str;
-        return str.substring(0, 10);
     }
 }
