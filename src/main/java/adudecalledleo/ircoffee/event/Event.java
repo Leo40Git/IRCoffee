@@ -1,5 +1,7 @@
 package adudecalledleo.ircoffee.event;
 
+import adudecalledleo.ircoffee.event.impl.EventImpl;
+
 import java.util.function.Function;
 
 public abstract class Event<T> {

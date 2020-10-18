@@ -1,4 +1,6 @@
-package adudecalledleo.ircoffee.event;
+package adudecalledleo.ircoffee.event.impl;
+
+import adudecalledleo.ircoffee.event.Event;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -17,6 +19,7 @@ public final class EventImpl<T> extends Event<T> {
         //noinspection unchecked
         T[] emptyArray = (T[]) Array.newInstance(type, 0);
         emptyInvoker = invokerFactory.apply(emptyArray);
+        update();
     }
 
     private T[] getHandlerArray() {
@@ -37,7 +40,7 @@ public final class EventImpl<T> extends Event<T> {
     @Override
     public void register(T listener) {
         if (listener == null)
-            throw new NullPointerException("Tried to register a null listener!");
+            throw new NullPointerException("listener == null!");
         handlers.add(listener);
         update();
     }

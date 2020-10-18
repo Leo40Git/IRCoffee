@@ -1,9 +1,6 @@
 package adudecalledleo.ircoffee;
 
-import adudecalledleo.ircoffee.event.ChannelListReceived;
-import adudecalledleo.ircoffee.event.Event;
-import adudecalledleo.ircoffee.event.MessageReceived;
-import adudecalledleo.ircoffee.event.UserListReceived;
+import adudecalledleo.ircoffee.event.*;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -17,7 +14,10 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+
+import static adudecalledleo.ircoffee.IRCNumerics.*;
 
 public final class IRCClient {
     public final Event<MessageReceived> onMessageReceived = Event.create(MessageReceived.class, listeners -> message -> {
@@ -37,7 +37,11 @@ public final class IRCClient {
 
     private String host = "127.0.0.1";
     private int port = -1;
-    private boolean ssl = false;
+    private boolean sslEnabled = false;
+
+    private String initialNickname = "IRCoffee";
+    private String username = "IRCoffee";
+    private String realName = "IRCoffee User";
 
     private EventLoopGroup group;
     private Channel ch;
@@ -59,19 +63,44 @@ public final class IRCClient {
         this.port = port;
     }
 
-    public boolean isSSL() {
-        return ssl;
+    public boolean isSslEnabled() {
+        return sslEnabled;
     }
 
-    public void setSSL(boolean ssl) {
-        this.ssl = ssl;
+    public void setSslEnabled(boolean sslEnabled) {
+        this.sslEnabled = sslEnabled;
+    }
+
+    public String getInitialNickname() {
+        return initialNickname;
+    }
+
+    public void setInitialNickname(String initialNickname) {
+        this.initialNickname = initialNickname;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getRealName() {
+        return realName;
+    }
+
+    public void setRealName(String realName) {
+        this.realName = realName;
     }
 
     public void connect() throws Exception {
         if (port < 0)
-            port = ssl ? 6697 : 6667;
+            port = sslEnabled ? 6697 : 6667;
         SslContext sslCtx = null;
-        if (ssl)
+        if (sslEnabled)
+            // TODO Swap InsecureTrustManagerFactory with something proper
             sslCtx = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
         group = new NioEventLoopGroup();
         Bootstrap b = new Bootstrap();
@@ -80,6 +109,8 @@ public final class IRCClient {
                 .handler(new Initializer(sslCtx));
         ch = b.connect(host, port).sync().channel();
         lastWriteFuture = null;
+        sendCommand("NICK", initialNickname);
+        sendCommand("USER", username, "0", "*", realName);
     }
 
     public void disconnect() throws Exception {
@@ -95,8 +126,12 @@ public final class IRCClient {
         lastWriteFuture = ch.writeAndFlush(message + "\r\n");
     }
 
-    private static final StringDecoder DECODER = new StringDecoder();
-    private static final StringEncoder ENCODER = new StringEncoder();
+    public void sendCommand(String command, String... params) {
+        send(IRCMessage.command(command, params));
+    }
+
+    private static final StringDecoder DECODER = new StringDecoder(StandardCharsets.UTF_8);
+    private static final StringEncoder ENCODER = new StringEncoder(StandardCharsets.UTF_8);
 
     private class Initializer extends ChannelInitializer<SocketChannel> {
         private final SslContext sslCtx;
@@ -145,29 +180,28 @@ public final class IRCClient {
             return false;
         }
         // channel list stuff
-        if ("321".equals(command))
+        if (RPL_LISTSTART.equals(command))
             // this one isn't guaranteed, so ignore it
             return false;
-        if ("322".equals(command)) {
+        if (RPL_LIST.equals(command)) {
             if (lists.channelList == null)
                 lists.channelList = new ArrayList<>();
             String name = message.getParam(1);
             int clientCount = -1;
             try {
-                //noinspection ConstantConditions
                 clientCount = Integer.parseInt(message.getParam(2));
             } catch (Exception ignored) { }
             String topic = message.getParam(3);
             lists.channelList.add(new IRCChannel(name, clientCount, topic));
             return false;
         }
-        if ("323".equals(command)) {
+        if (RPL_LISTEND.equals(command)) {
             onChannelListReceived.invoker().onChannelListReceived(lists.channelList);
             lists.channelList = null;
             return false;
         }
         // user list stuff
-        if ("353".equals(command)) {
+        if (RPL_NAMREPLY.equals(command)) {
             String channel = message.getParam(2);
             List<String> userList = lists.userLists.computeIfAbsent(channel, key -> new ArrayList<>());
             String usersString = message.getParam(3);
@@ -175,7 +209,7 @@ public final class IRCClient {
                 Collections.addAll(userList, usersString.split(" "));
             return false;
         }
-        if ("366".equals(command)) {
+        if (RPL_ENDOFNAMES.equals(command)) {
             String channel = message.getParam(1);
             List<String> userList = lists.userLists.remove(channel);
             if (userList != null)
