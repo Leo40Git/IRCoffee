@@ -1,7 +1,10 @@
 package adudecalledleo.ircoffee;
 
 import adudecalledleo.ircoffee.data.Channel;
+import adudecalledleo.ircoffee.data.User;
 import adudecalledleo.ircoffee.event.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -25,15 +28,17 @@ public final class IRCClient {
         for (MessageReceived listener : listeners)
             listener.onMessageReceived(client, message.copy());
     });
+    public final Event<WhoIsResponseReceived> onWhoIsResponseReceived = Event.create(WhoIsResponseReceived.class, listeners -> (client, user) -> {
+        for (WhoIsResponseReceived listener : listeners)
+            listener.onWhoIsResponseReceived(client, user);
+    });
     public final Event<ChannelListReceived> onChannelListReceived = Event.create(ChannelListReceived.class, listeners -> (client, channels) -> {
-        List<Channel> listView = Collections.unmodifiableList(channels);
         for (ChannelListReceived listener : listeners)
-            listener.onChannelListReceived(client, listView);
+            listener.onChannelListReceived(client, channels);
     });
     public final Event<UserListReceived> onUserListReceived = Event.create(UserListReceived.class, listeners -> (client, channel, users) -> {
-        List<String> listView = Collections.unmodifiableList(users);
         for (UserListReceived listener : listeners)
-            listener.onUserListReceived(client, channel, listView);
+            listener.onUserListReceived(client, channel, users);
     });
 
     private String host = "127.0.0.1";
@@ -171,8 +176,9 @@ public final class IRCClient {
     }
 
     private static class Buffers {
-        private List<Channel> channelList;
-        private final Map<String, List<String>> userLists = new HashMap<>();
+        private ImmutableList.Builder<Channel> channelListBuilder;
+        private final Map<String, ImmutableList.Builder<String>> userListsBuilders = new HashMap<>();
+        private final Map<String, User.Builder> whoIsBuilders = new HashMap<>();
     }
     private final Buffers buffers = new Buffers();
 
@@ -187,36 +193,93 @@ public final class IRCClient {
             // this one isn't guaranteed, so ignore it
             return false;
         if (RPL_LIST.equals(command)) {
-            if (buffers.channelList == null)
-                buffers.channelList = new ArrayList<>();
+            if (buffers.channelListBuilder == null)
+                buffers.channelListBuilder = ImmutableList.builder();
             String name = message.getParam(1);
             int clientCount = -1;
             try {
                 clientCount = Integer.parseInt(message.getParam(2));
             } catch (Exception ignored) { }
             String topic = message.getParam(3);
-            buffers.channelList.add(new Channel(name, clientCount, topic));
+            buffers.channelListBuilder.add(new Channel(name, clientCount, topic));
             return false;
         }
         if (RPL_LISTEND.equals(command)) {
-            onChannelListReceived.invoker().onChannelListReceived(this, buffers.channelList);
-            buffers.channelList = null;
+            onChannelListReceived.invoker().onChannelListReceived(this, buffers.channelListBuilder.build());
+            buffers.channelListBuilder = null;
             return false;
         }
         // user list stuff
         if (RPL_NAMREPLY.equals(command)) {
             String channel = message.getParam(2);
-            List<String> userList = buffers.userLists.computeIfAbsent(channel, key -> new ArrayList<>());
+            ImmutableList.Builder<String> userListBuilder = buffers.userListsBuilders.computeIfAbsent(channel, key -> ImmutableList.builder());
             String usersString = message.getParam(3);
             if (usersString != null)
-                Collections.addAll(userList, usersString.split(" "));
+                userListBuilder.add(usersString.split(" "));
             return false;
         }
         if (RPL_ENDOFNAMES.equals(command)) {
             String channel = message.getParam(1);
-            List<String> userList = buffers.userLists.remove(channel);
-            if (userList != null)
-                onUserListReceived.invoker().onUserListReceived(this, channel, userList);
+            ImmutableList.Builder<String> userListBuilder = buffers.userListsBuilders.remove(channel);
+            if (userListBuilder != null)
+                onUserListReceived.invoker().onUserListReceived(this, channel, userListBuilder.build());
+            return false;
+        }
+        // TODO ban list stuff
+        // WHOIS stuff
+        if (RPL_WHOISUSER.equals(command)) {
+            String nickname = message.getParam(1);
+            String username = message.getParam(2);
+            String host = message.getParam(3);
+            String realName = message.getParam(5);
+            buffers.whoIsBuilders.put(nickname, User.builder(nickname, username, host, realName));
+            return false;
+        }
+        if (RPL_WHOISSERVER.equals(command)) {
+            User.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            if (whoIsBuilder != null)
+                whoIsBuilder.setServer(message.getParam(2), message.getParam(3));
+            return false;
+        }
+        if (RPL_WHOISOPERATOR.equals(command)) {
+            User.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            if (whoIsBuilder != null)
+                whoIsBuilder.setOperator();
+            return false;
+        }
+        if (RPL_WHOISIDLE.equals(command)) {
+            User.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            if (whoIsBuilder != null) {
+                int secondsIdle;
+                try {
+                    secondsIdle = Integer.parseUnsignedInt(message.getParam(2));
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+                long signOnTime;
+                try {
+                    signOnTime = Long.parseUnsignedLong(message.getParam(3));
+                } catch (NumberFormatException ignored) {
+                    // this one's optional; if parse failed, it's probably missing
+                    signOnTime = -1;
+                }
+                whoIsBuilder.setIdle(secondsIdle, signOnTime);
+            }
+            return false;
+        }
+        if (RPL_WHOISCHANNELS.equals(command)) {
+            User.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            if (whoIsBuilder != null) {
+                String[] channels = message.getParam(2).split(" ");
+                for (String channel : channels)
+                    whoIsBuilder.addChannel(channel.substring(1));
+            }
+            return false;
+        }
+        if (RPL_ENDOFWHOIS.equals(command)) {
+            User.Builder whoIsBuilder = buffers.whoIsBuilders.remove(message.getParam(1));
+            if (whoIsBuilder != null)
+                onWhoIsResponseReceived.invoker().onWhoIsResponseReceived(this, whoIsBuilder.build());
             return false;
         }
         return true;

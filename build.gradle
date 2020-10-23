@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'java-library'
 }
 
 group 'adudecalledleo.javalibs'
@@ -11,5 +12,6 @@ repositories {
 
 dependencies {
     compile group: 'io.netty', name: 'netty-all', version: '4.1.53.Final'
+    api group: 'com.google.guava', name: 'guava', version: '30.0-jre'
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }

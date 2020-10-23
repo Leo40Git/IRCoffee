@@ -44,12 +44,13 @@ public final class IRCMessage {
     }
 
     private final Map<String, String> tags = new HashMap<>();
-    private String source = "";
+    private String source;
     private String command;
     private final List<String> params = new ArrayList<>();
 
     public IRCMessage(String command) {
         this.command = command;
+        source = "";
     }
 
     private IRCMessage() {
