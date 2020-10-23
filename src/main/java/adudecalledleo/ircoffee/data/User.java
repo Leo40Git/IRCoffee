@@ -123,6 +123,10 @@ public final class User {
         return server;
     }
 
+    public String getServerInfo() {
+        return serverInfo;
+    }
+
     public boolean isOperator() {
         return isOperator;
     }
