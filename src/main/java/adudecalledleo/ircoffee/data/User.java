@@ -146,4 +146,21 @@ public final class User {
     public List<String> getChannels() {
         return channels;
     }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "nickname='" + nickname + '\'' +
+                ", username='" + username + '\'' +
+                ", host='" + host + '\'' +
+                ", realName='" + realName + '\'' +
+                ", server='" + server + '\'' +
+                ", serverInfo='" + serverInfo + '\'' +
+                ", isOperator=" + isOperator +
+                ", isIdle=" + isIdle +
+                ", secondsIdle=" + secondsIdle +
+                ", signOnTime=" + signOnTime +
+                ", channels=" + channels +
+                '}';
+    }
 }

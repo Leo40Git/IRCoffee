@@ -116,4 +116,15 @@ public final class IRCNumerics {
     public static String ERR_SASLABORTED = "906";
     public static String ERR_SASLALREADY = "907";
     public static String RPL_SASLMECHS = "908";
+
+    public static boolean isNumeric(String command) {
+        if (command.length() != 3)
+            return false;
+        try {
+            int x = Integer.parseUnsignedInt(command, 10);
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
+        return true;
+    }
 }
