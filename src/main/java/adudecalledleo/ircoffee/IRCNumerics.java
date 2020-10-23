@@ -1,5 +1,7 @@
 package adudecalledleo.ircoffee;
 
+import com.google.common.collect.ImmutableSet;
+
 /**
  * Contains constants for every single numeric reply.<p>
  * These are server-to-client, and thus shouldn't be used to create new messages.
@@ -126,5 +128,48 @@ public final class IRCNumerics {
             return false;
         }
         return true;
+    }
+
+    private static final ImmutableSet<String> ERRORS = ImmutableSet.of(
+            ERR_UNKNOWNERROR,
+            ERR_NOSUCHNICK,
+            ERR_NOSUCHSERVER,
+            ERR_NOSUCHCHANNEL,
+            ERR_CANNOTSENDTOCHAN,
+            ERR_TOOMANYCHANNELS,
+            ERR_UNKNOWNCOMMAND,
+            ERR_NOMOTD,
+            ERR_ERRONEUSNICKNAME,
+            ERR_NICKNAMEINUSE,
+            ERR_USERNOTINCHANNEL,
+            ERR_NOTONCHANNEL,
+            ERR_USERONCHANNEL,
+            ERR_NOTREGISTERED,
+            ERR_NEEDMOREPARAMS,
+            ERR_ALREADYREGISTERED,
+            ERR_PASSWDMISMATCH,
+            ERR_YOUREBANNEDCREEP,
+            ERR_CHANNELISFULL,
+            ERR_UNKNOWNMODE,
+            ERR_INVITEONLYCHAN,
+            ERR_BANNEDFROMCHAN,
+            ERR_BADCHANNELKEY,
+            ERR_NOPRIVILEGES,
+            ERR_CHANOPRIVSNEEDED,
+            ERR_CANTKILLSERVER,
+            ERR_NOOPERHOST,
+            ERR_UMODEUNKNOWNFLAG,
+            ERR_USERSDONTMATCH,
+            ERR_STARTTLS,
+            ERR_NOPRIVS,
+            ERR_NICKLOCKED,
+            ERR_SASLFAIL,
+            ERR_SASLTOOLONG,
+            ERR_SASLABORTED,
+            ERR_SASLALREADY
+    );
+
+    public boolean isError(String numeric) {
+        return ERRORS.contains(numeric);
     }
 }
