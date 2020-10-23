@@ -24,6 +24,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
+import javax.net.ssl.SSLException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Locale;
@@ -121,7 +122,7 @@ public final class IRCClient {
         this.realName = realName;
     }
 
-    public void connect() throws Exception {
+    public void connect() throws SSLException, InterruptedException {
         if (isConnected())
             throw new IllegalStateException("Already connected!");
         try {
@@ -141,7 +142,7 @@ public final class IRCClient {
             sendCommand("NICK", initialNickname);
             sendCommand("USER", username, "0", "*", realName);
             onConnected.invoker().onConnected(this);
-        } catch (Exception e) {
+        } catch (SSLException | InterruptedException e) {
             if (group != null)
                 //noinspection deprecation
                 group.shutdownNow();
@@ -152,28 +153,19 @@ public final class IRCClient {
         }
     }
 
-    public void disconnect() throws Exception {
+    public void disconnect() {
         if (!isConnected())
             throw new IllegalStateException("Not connected!");
         try {
             if (lastWriteFuture != null)
                 lastWriteFuture.sync();
-        } catch (Exception e) {
-            if (group != null)
-                //noinspection deprecation
-                group.shutdownNow();
-            group = null;
-            ch = null;
-            lastWriteFuture = null;
-            throw e;
-        } finally {
-            if (group != null)
-                group.shutdownGracefully();
-            group = null;
-            ch = null;
-            lastWriteFuture = null;
-            onDisconnected.invoker().onDisconnected(this);
-        }
+        } catch (InterruptedException ignored) { }
+        if (group != null)
+            group.shutdownGracefully();
+        group = null;
+        ch = null;
+        lastWriteFuture = null;
+        onDisconnected.invoker().onDisconnected(this);
     }
 
     public boolean isConnected() {
@@ -224,13 +216,9 @@ public final class IRCClient {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+            cause.printStackTrace();
             ctx.close();
-            try {
-                disconnect();
-            } catch (Exception e) {
-                e.addSuppressed(cause);
-                e.printStackTrace();
-            }
+            disconnect();
         }
     }
 
@@ -351,11 +339,7 @@ public final class IRCClient {
             onBounced.invoker().onBounced(this, newHost, newPort, message.getParam(3));
             if (!isConnected())
                 return false;
-            try {
-                disconnect();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            disconnect();
             setHost(newHost);
             setPort(newPort);
             try {
