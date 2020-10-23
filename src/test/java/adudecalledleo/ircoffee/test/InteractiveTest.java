@@ -1,6 +1,6 @@
 package adudecalledleo.ircoffee.test;
 
-import adudecalledleo.ircoffee.IRCChannel;
+import adudecalledleo.ircoffee.data.Channel;
 import adudecalledleo.ircoffee.IRCClient;
 import adudecalledleo.ircoffee.IRCMessage;
 import io.netty.util.internal.StringUtil;
@@ -36,13 +36,13 @@ public class InteractiveTest {
         client.setInitialNickname(nickname);
         client.setUsername(username);
         client.setRealName(realName);
-        client.onMessageReceived.register(System.err::println);
-        client.onChannelListReceived.register(channels -> {
+        client.onMessageReceived.register((client2, x) -> System.err.println(x));
+        client.onChannelListReceived.register((client2, channels) -> {
             System.err.format("%d channels in server:%n", channels.size());
-            for (IRCChannel channel : channels)
+            for (Channel channel : channels)
                 System.err.format("%s (%d): %s%n", channel.getName(), channel.getClientCount(), channel.getTopic());
         });
-        client.onUserListReceived.register((channel, users) -> {
+        client.onUserListReceived.register((client2, channel, users) -> {
             System.err.println("Users currently in channel " + channel + ":");
             for (String user : users)
                 System.err.println(user);

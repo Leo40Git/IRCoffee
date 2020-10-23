@@ -1,5 +1,6 @@
 package adudecalledleo.ircoffee;
 
+import adudecalledleo.ircoffee.data.Channel;
 import adudecalledleo.ircoffee.event.*;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
@@ -20,19 +21,19 @@ import java.util.*;
 import static adudecalledleo.ircoffee.IRCNumerics.*;
 
 public final class IRCClient {
-    public final Event<MessageReceived> onMessageReceived = Event.create(MessageReceived.class, listeners -> message -> {
+    public final Event<MessageReceived> onMessageReceived = Event.create(MessageReceived.class, listeners -> (client, message) -> {
         for (MessageReceived listener : listeners)
-            listener.onMessageReceived(message.copy());
+            listener.onMessageReceived(client, message.copy());
     });
-    public final Event<ChannelListReceived> onChannelListReceived = Event.create(ChannelListReceived.class, listeners -> channels -> {
-        List<IRCChannel> listView = Collections.unmodifiableList(channels);
+    public final Event<ChannelListReceived> onChannelListReceived = Event.create(ChannelListReceived.class, listeners -> (client, channels) -> {
+        List<Channel> listView = Collections.unmodifiableList(channels);
         for (ChannelListReceived listener : listeners)
-            listener.onChannelListReceived(listView);
+            listener.onChannelListReceived(client, listView);
     });
-    public final Event<UserListReceived> onUserListReceived = Event.create(UserListReceived.class, listeners -> (channel, users) -> {
+    public final Event<UserListReceived> onUserListReceived = Event.create(UserListReceived.class, listeners -> (client, channel, users) -> {
         List<String> listView = Collections.unmodifiableList(users);
         for (UserListReceived listener : listeners)
-            listener.onUserListReceived(channel, listView);
+            listener.onUserListReceived(client, channel, listView);
     });
 
     private String host = "127.0.0.1";
@@ -44,7 +45,7 @@ public final class IRCClient {
     private String realName = "IRCoffee User";
 
     private EventLoopGroup group;
-    private Channel ch;
+    private io.netty.channel.Channel ch;
     private ChannelFuture lastWriteFuture;
 
     public String getHost() {
@@ -130,6 +131,8 @@ public final class IRCClient {
         send(IRCMessage.command(command, params));
     }
 
+    private static final DelimiterBasedFrameDecoder FRAME_DECODER
+            = new DelimiterBasedFrameDecoder(8192, Unpooled.wrappedBuffer(new byte[] { '\r', '\n' }));
     private static final StringDecoder DECODER = new StringDecoder(StandardCharsets.UTF_8);
     private static final StringEncoder ENCODER = new StringEncoder(StandardCharsets.UTF_8);
 
@@ -145,7 +148,7 @@ public final class IRCClient {
             ChannelPipeline pipeline = ch.pipeline();
             if (sslCtx != null)
                 pipeline.addLast(sslCtx.newHandler(ch.alloc(), host, port));
-            pipeline.addLast(new DelimiterBasedFrameDecoder(8192, Unpooled.wrappedBuffer(new byte[] { '\r', '\n' })));
+            pipeline.addLast(FRAME_DECODER);
             pipeline.addLast(DECODER);
             pipeline.addLast(ENCODER);
             pipeline.addLast(new Handler());
@@ -157,7 +160,7 @@ public final class IRCClient {
         protected void channelRead0(ChannelHandlerContext ctx, String msg) {
             IRCMessage message = IRCMessage.fromString(msg);
             if (handleMessage(message))
-                onMessageReceived.invoker().onMessageReceived(message);
+                onMessageReceived.invoker().onMessageReceived(IRCClient.this, message);
         }
 
         @Override
@@ -167,11 +170,11 @@ public final class IRCClient {
         }
     }
 
-    private static class Lists {
-        private List<IRCChannel> channelList;
+    private static class Buffers {
+        private List<Channel> channelList;
         private final Map<String, List<String>> userLists = new HashMap<>();
     }
-    private final Lists lists = new Lists();
+    private final Buffers buffers = new Buffers();
 
     private boolean handleMessage(IRCMessage message) {
         String command = message.getCommand().toUpperCase(Locale.ROOT);
@@ -184,26 +187,26 @@ public final class IRCClient {
             // this one isn't guaranteed, so ignore it
             return false;
         if (RPL_LIST.equals(command)) {
-            if (lists.channelList == null)
-                lists.channelList = new ArrayList<>();
+            if (buffers.channelList == null)
+                buffers.channelList = new ArrayList<>();
             String name = message.getParam(1);
             int clientCount = -1;
             try {
                 clientCount = Integer.parseInt(message.getParam(2));
             } catch (Exception ignored) { }
             String topic = message.getParam(3);
-            lists.channelList.add(new IRCChannel(name, clientCount, topic));
+            buffers.channelList.add(new Channel(name, clientCount, topic));
             return false;
         }
         if (RPL_LISTEND.equals(command)) {
-            onChannelListReceived.invoker().onChannelListReceived(lists.channelList);
-            lists.channelList = null;
+            onChannelListReceived.invoker().onChannelListReceived(this, buffers.channelList);
+            buffers.channelList = null;
             return false;
         }
         // user list stuff
         if (RPL_NAMREPLY.equals(command)) {
             String channel = message.getParam(2);
-            List<String> userList = lists.userLists.computeIfAbsent(channel, key -> new ArrayList<>());
+            List<String> userList = buffers.userLists.computeIfAbsent(channel, key -> new ArrayList<>());
             String usersString = message.getParam(3);
             if (usersString != null)
                 Collections.addAll(userList, usersString.split(" "));
@@ -211,9 +214,9 @@ public final class IRCClient {
         }
         if (RPL_ENDOFNAMES.equals(command)) {
             String channel = message.getParam(1);
-            List<String> userList = lists.userLists.remove(channel);
+            List<String> userList = buffers.userLists.remove(channel);
             if (userList != null)
-                onUserListReceived.invoker().onUserListReceived(channel, userList);
+                onUserListReceived.invoker().onUserListReceived(this, channel, userList);
             return false;
         }
         return true;

@@ -6,6 +6,8 @@ package adudecalledleo.ircoffee;
  */
 @SuppressWarnings({"unused", "RedundantSuppression"})
 public final class IRCNumerics {
+    private IRCNumerics() { }
+
     public static String RPL_WELCOME = "001";
     public static String RPL_YOURHOST = "002";
     public static String RPL_CREATED = "003";

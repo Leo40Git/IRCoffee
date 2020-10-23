@@ -1,11 +1,11 @@
-package adudecalledleo.ircoffee;
+package adudecalledleo.ircoffee.data;
 
-public final class IRCChannel {
+public final class Channel {
     private final String name;
     private final int clientCount;
     private final String topic;
 
-    IRCChannel(String name, int clientCount, String topic) {
+    public Channel(String name, int clientCount, String topic) {
         this.name = name;
         this.clientCount = clientCount;
         this.topic = topic;
