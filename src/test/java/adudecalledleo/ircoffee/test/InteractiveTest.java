@@ -38,8 +38,12 @@ public class InteractiveTest {
         client.setInitialNickname(nickname);
         client.setUsername(username);
         client.setRealName(realName);
-        client.onMessageReceived.register((client2, message) -> System.err.println(message));
-        client.onWhoIsResponseReceived.register((client2, user) -> {
+        client.onConnected.register(client1 -> System.err.println("Connected to server."));
+        client.onDisconnected.register(client1 -> System.err.println("Disconnected from server."));
+        client.onBounced.register((client1, newHost, newPort, info) ->
+                System.err.format("Bouncing to %s:%d: %s%n", newHost, newPort, info));
+        client.onMessageReceived.register((client1, message) -> System.err.println(message));
+        client.onWhoIsResponseReceived.register((client1, user) -> {
             System.err.println("WHOIS response:");
             System.err.format("%s (%s), host: %s, real name: %s%n",
                     user.getNickname(), user.getUsername(), user.getHost(), user.getRealName());
@@ -60,13 +64,13 @@ public class InteractiveTest {
                 System.err.format("In the following channels: %s%n", String.join(", ", channels));
             System.err.println("END WHOIS response");
         });
-        client.onChannelListReceived.register((client2, channels) -> {
+        client.onChannelListReceived.register((client1, channels) -> {
             System.err.format("%d channels in server:%n", channels.size());
             for (Channel channel : channels)
                 System.err.format("%s (%d): %s%n", channel.getName(), channel.getClientCount(), channel.getTopic());
             System.err.println("END Channel list");
         });
-        client.onUserListReceived.register((client2, channel, users) -> {
+        client.onUserListReceived.register((client1, channel, users) -> {
             System.err.format("%d users currently in channel %s:%n", users.size(), channel);
             for (String user : users)
                 System.err.println(user);

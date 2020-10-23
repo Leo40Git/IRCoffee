@@ -2,9 +2,15 @@ package adudecalledleo.ircoffee;
 
 import adudecalledleo.ircoffee.data.Channel;
 import adudecalledleo.ircoffee.data.User;
-import adudecalledleo.ircoffee.event.*;
+import adudecalledleo.ircoffee.event.Event;
+import adudecalledleo.ircoffee.event.MessageReceived;
+import adudecalledleo.ircoffee.event.connection.Bounced;
+import adudecalledleo.ircoffee.event.connection.Connected;
+import adudecalledleo.ircoffee.event.connection.Disconnected;
+import adudecalledleo.ircoffee.event.response.ChannelListReceived;
+import adudecalledleo.ircoffee.event.response.UserListReceived;
+import adudecalledleo.ircoffee.event.response.WhoIsResponseReceived;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -19,11 +25,25 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 import static adudecalledleo.ircoffee.IRCNumerics.*;
 
 public final class IRCClient {
+    public final Event<Connected> onConnected = Event.create(Connected.class, listeners -> client -> {
+        for (Connected listener : listeners)
+            listener.onConnected(client);
+    });
+    public final Event<Disconnected> onDisconnected = Event.create(Disconnected.class, listeners -> client -> {
+        for (Disconnected listener : listeners)
+            listener.onDisconnected(client);
+    });
+    public final Event<Bounced> onBounced = Event.create(Bounced.class, listeners -> (client, newHost, newPort, info) -> {
+        for (Bounced listener : listeners)
+            listener.onBounced(client, newHost, newPort, info);
+    });
     public final Event<MessageReceived> onMessageReceived = Event.create(MessageReceived.class, listeners -> (client, message) -> {
         for (MessageReceived listener : listeners)
             listener.onMessageReceived(client, message.copy());
@@ -102,33 +122,67 @@ public final class IRCClient {
     }
 
     public void connect() throws Exception {
-        if (port < 0)
-            port = sslEnabled ? 6697 : 6667;
-        SslContext sslCtx = null;
-        if (sslEnabled)
-            // TODO Swap InsecureTrustManagerFactory with something proper
-            sslCtx = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-        group = new NioEventLoopGroup();
-        Bootstrap b = new Bootstrap();
-        b.group(group)
-                .channel(NioSocketChannel.class)
-                .handler(new Initializer(sslCtx));
-        ch = b.connect(host, port).sync().channel();
-        lastWriteFuture = null;
-        sendCommand("NICK", initialNickname);
-        sendCommand("USER", username, "0", "*", realName);
-    }
-
-    public void disconnect() throws Exception {
+        if (isConnected())
+            throw new IllegalStateException("Already connected!");
         try {
-            if (lastWriteFuture != null)
-                lastWriteFuture.sync();
-        } finally {
-            group.shutdownGracefully();
+            if (port < 0)
+                port = sslEnabled ? 6697 : 6667;
+            SslContext sslCtx = null;
+            if (sslEnabled)
+                // TODO Swap InsecureTrustManagerFactory with something proper
+                sslCtx = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+            group = new NioEventLoopGroup();
+            Bootstrap b = new Bootstrap();
+            b.group(group)
+                    .channel(NioSocketChannel.class)
+                    .handler(new Initializer(sslCtx));
+            ch = b.connect(host, port).sync().channel();
+            lastWriteFuture = null;
+            sendCommand("NICK", initialNickname);
+            sendCommand("USER", username, "0", "*", realName);
+            onConnected.invoker().onConnected(this);
+        } catch (Exception e) {
+            if (group != null)
+                //noinspection deprecation
+                group.shutdownNow();
+            group = null;
+            ch = null;
+            lastWriteFuture = null;
+            throw e;
         }
     }
 
+    public void disconnect() throws Exception {
+        if (!isConnected())
+            throw new IllegalStateException("Not connected!");
+        try {
+            if (lastWriteFuture != null)
+                lastWriteFuture.sync();
+        } catch (Exception e) {
+            if (group != null)
+                //noinspection deprecation
+                group.shutdownNow();
+            group = null;
+            ch = null;
+            lastWriteFuture = null;
+            throw e;
+        } finally {
+            if (group != null)
+                group.shutdownGracefully();
+            group = null;
+            ch = null;
+            lastWriteFuture = null;
+            onDisconnected.invoker().onDisconnected(this);
+        }
+    }
+
+    public boolean isConnected() {
+        return group != null;
+    }
+
     public void send(IRCMessage message) {
+        if (!isConnected())
+            throw new IllegalStateException("Not connected!");
         lastWriteFuture = ch.writeAndFlush(message + "\r\n");
     }
 
@@ -281,6 +335,29 @@ public final class IRCClient {
             if (whoIsBuilder != null)
                 onWhoIsResponseReceived.invoker().onWhoIsResponseReceived(this, whoIsBuilder.build());
             return false;
+        }
+        // standalone numerics
+        if (RPL_BOUNCE.equals(command)) {
+            String newHost = message.getParam(1);
+            int newPort = sslEnabled ? 6697 : 6667;
+            try {
+                newPort = Integer.parseUnsignedInt(message.getParam(2));
+            } catch (NumberFormatException ignored) { }
+            onBounced.invoker().onBounced(this, newHost, newPort, message.getParam(3));
+            if (!isConnected())
+                return false;
+            try {
+                disconnect();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            setHost(newHost);
+            setPort(newPort);
+            try {
+                connect();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         return true;
     }

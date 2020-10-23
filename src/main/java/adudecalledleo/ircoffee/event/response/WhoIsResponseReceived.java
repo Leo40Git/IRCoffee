@@ -1,4 +1,4 @@
-package adudecalledleo.ircoffee.event;
+package adudecalledleo.ircoffee.event.response;
 
 import adudecalledleo.ircoffee.IRCClient;
 import adudecalledleo.ircoffee.data.User;
