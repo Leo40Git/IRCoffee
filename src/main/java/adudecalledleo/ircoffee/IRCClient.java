@@ -224,8 +224,13 @@ public final class IRCClient {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            cause.printStackTrace();
             ctx.close();
+            try {
+                disconnect();
+            } catch (Exception e) {
+                e.addSuppressed(cause);
+                e.printStackTrace();
+            }
         }
     }
 
