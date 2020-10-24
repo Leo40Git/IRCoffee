@@ -1,4 +1,4 @@
-package adudecalledleo.ircoffee.test;
+package adudecalledleo.ircoffee.test.unit;
 
 import adudecalledleo.ircoffee.IRCMessage;
 import org.junit.Test;

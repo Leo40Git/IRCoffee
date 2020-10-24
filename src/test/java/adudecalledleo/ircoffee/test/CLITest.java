@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Scanner;
 
-public class InteractiveTest {
+public class CLITest {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         System.out.print("Enter address (leave empty for localhost): ");

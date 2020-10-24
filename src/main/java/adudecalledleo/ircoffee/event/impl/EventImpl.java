@@ -1,21 +1,22 @@
 package adudecalledleo.ircoffee.event.impl;
 
 import adudecalledleo.ircoffee.event.Event;
+import com.google.common.collect.Iterables;
 
 import java.lang.reflect.Array;
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.function.Function;
 
 public final class EventImpl<T> extends Event<T> {
     private final Class<? super T> type;
     private final Function<T[], T> invokerFactory;
-    private final ArrayList<T> handlers;
+    private final LinkedHashSet<T> handlers;
     private final T emptyInvoker;
 
     public EventImpl(Class<? super T> type, Function<T[], T> invokerFactory) {
         this.type = type;
         this.invokerFactory = invokerFactory;
-        handlers = new ArrayList<>();
+        handlers = new LinkedHashSet<>();
         //noinspection unchecked
         T[] emptyArray = (T[]) Array.newInstance(type, 0);
         emptyInvoker = invokerFactory.apply(emptyArray);
@@ -29,10 +30,8 @@ public final class EventImpl<T> extends Event<T> {
     }
 
     private void update() {
-        if (handlers.isEmpty())
-            invoker = emptyInvoker;
-        else if (handlers.size() == 1)
-            invoker = handlers.get(0);
+        if (handlers.size() <= 1)
+            invoker = Iterables.getFirst(handlers, emptyInvoker);
         else
             invoker = invokerFactory.apply(getHandlerArray());
     }
