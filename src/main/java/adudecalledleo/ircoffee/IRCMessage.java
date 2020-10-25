@@ -6,9 +6,11 @@ import java.util.*;
 
 public final class IRCMessage {
     public static final class Builder {
-        private final IRCMessage message = new IRCMessage();
+        private final IRCMessage message;
 
-        private Builder() { }
+        private Builder(String command) {
+            message = new IRCMessage(command);
+        }
 
         public Builder putTag(String key, String value) {
             message.putTag(key, value);
@@ -39,8 +41,8 @@ public final class IRCMessage {
         }
     }
 
-    public static Builder builder() {
-        return new Builder();
+    public static Builder builder(String command) {
+        return new Builder(command);
     }
 
     private final Map<String, String> tags = new HashMap<>();
@@ -51,10 +53,6 @@ public final class IRCMessage {
     public IRCMessage(String command) {
         this.command = command;
         source = "";
-    }
-
-    private IRCMessage() {
-        this("");
     }
 
     public Map<String, String> getTags() {
@@ -128,7 +126,7 @@ public final class IRCMessage {
     }
 
     public static IRCMessage fromString(String string) {
-        IRCMessage result = new IRCMessage();
+        IRCMessage result = new IRCMessage("");
         if (string.startsWith("@")) {
             // tags
             int tagsEnd = string.indexOf(' ');

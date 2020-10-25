@@ -130,7 +130,7 @@ public final class IRCClient {
                 port = sslEnabled ? 6697 : 6667;
             SslContext sslCtx = null;
             if (sslEnabled)
-                // TODO Swap InsecureTrustManagerFactory with something proper
+                // TODO swap InsecureTrustManagerFactory with something proper
                 sslCtx = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
             group = new NioEventLoopGroup();
             Bootstrap b = new Bootstrap();
@@ -160,8 +160,7 @@ public final class IRCClient {
             if (lastWriteFuture != null)
                 lastWriteFuture.sync();
         } catch (InterruptedException ignored) { }
-        if (group != null)
-            group.shutdownGracefully();
+        group.shutdownGracefully();
         group = null;
         ch = null;
         lastWriteFuture = null;
@@ -337,16 +336,17 @@ public final class IRCClient {
                 newPort = Integer.parseUnsignedInt(message.getParam(2));
             } catch (NumberFormatException ignored) { }
             onBounced.invoker().onBounced(this, newHost, newPort, message.getParam(3));
-            if (!isConnected())
-                return false;
-            disconnect();
-            setHost(newHost);
-            setPort(newPort);
-            try {
-                connect();
-            } catch (Exception e) {
-                e.printStackTrace();
+            if (isConnected()) {
+                disconnect();
+                setHost(newHost);
+                setPort(newPort);
+                try {
+                    connect();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
+            return false;
         }
         return true;
     }
