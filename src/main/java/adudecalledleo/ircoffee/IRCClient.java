@@ -7,6 +7,7 @@ import adudecalledleo.ircoffee.event.MessageReceived;
 import adudecalledleo.ircoffee.event.connection.Bounced;
 import adudecalledleo.ircoffee.event.connection.Connected;
 import adudecalledleo.ircoffee.event.connection.Disconnected;
+import adudecalledleo.ircoffee.event.connection.Terminated;
 import adudecalledleo.ircoffee.event.response.ChannelListReceived;
 import adudecalledleo.ircoffee.event.response.UserListReceived;
 import adudecalledleo.ircoffee.event.response.WhoIsResponseReceived;
@@ -41,9 +42,13 @@ public final class IRCClient {
         for (Disconnected listener : listeners)
             listener.onDisconnected(client);
     });
-    public final Event<Bounced> onBounced = Event.create(Bounced.class, listeners -> (client, newHost, newPort, info) -> {
+    public final Event<Bounced> onBounced = Event.create(Bounced.class, listeners -> (client, newHost, newPort, message) -> {
         for (Bounced listener : listeners)
-            listener.onBounced(client, newHost, newPort, info);
+            listener.onBounced(client, newHost, newPort, message);
+    });
+    public final Event<Terminated> onTerminated = Event.create(Terminated.class, listeners -> (client, message) -> {
+        for (Terminated listener : listeners)
+            listener.onTerminated(client, message);
     });
     public final Event<MessageReceived> onMessageReceived = Event.create(MessageReceived.class, listeners -> (client, message) -> {
         for (MessageReceived listener : listeners)
@@ -230,10 +235,6 @@ public final class IRCClient {
 
     private boolean handleMessage(IRCMessage message) {
         String command = message.getCommand().toUpperCase(Locale.ROOT);
-        if ("PING".equals(command)) {
-            send(IRCMessage.command("PONG", message.getParam(0)));
-            return false;
-        }
         // channel list stuff
         if (RPL_LISTSTART.equals(command))
             // this one isn't guaranteed, so ignore it
@@ -328,7 +329,7 @@ public final class IRCClient {
                 onWhoIsResponseReceived.invoker().onWhoIsResponseReceived(this, whoIsBuilder.build());
             return false;
         }
-        // standalone numerics
+        // standalone numerics/special commands
         if (RPL_BOUNCE.equals(command)) {
             String newHost = message.getParam(1);
             int newPort = sslEnabled ? 6697 : 6667;
@@ -347,6 +348,15 @@ public final class IRCClient {
                 }
             }
             return false;
+        }
+        if ("PING".equals(command)) {
+            send(IRCMessage.command("PONG", message.getParam(0)));
+            return false;
+        }
+        if ("ERROR".equals(command)) {
+            onTerminated.invoker().onTerminated(this, message.getParam(0));
+            if (isConnected())
+                disconnect();
         }
         return true;
     }
