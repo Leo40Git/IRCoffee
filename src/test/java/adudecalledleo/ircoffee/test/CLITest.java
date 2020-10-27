@@ -39,7 +39,9 @@ public class CLITest {
         client.setUsername(username);
         client.setRealName(realName);
         client.onConnected.register(client1 -> System.err.println("Connected to server."));
-        client.onDisconnected.register(client1 -> System.err.println("Disconnected from server."));
+        client.onDisconnected.register(client1 ->  System.err.println("Disconnected from server."));
+        client.onTerminated.register((client1, message) ->
+                System.err.format("Connection terminated by server: %s%n", message));
         client.onBounced.register((client1, newHost, newPort, info) ->
                 System.err.format("Bouncing to %s:%d: %s%n", newHost, newPort, info));
         client.onMessageReceived.register((client1, message) -> System.err.println(message));
@@ -76,16 +78,19 @@ public class CLITest {
                 System.err.println(user);
             System.err.println("END User list");
         });
+        client.onNicknameChanged.register((client1, oldNickname, newNickname) ->
+                System.err.format("%s is now known as %s%n", oldNickname, newNickname));
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
             client.connect();
-            while (true) {
+            while (client.isConnected()) {
                 String line = in.readLine();
-                if (StringUtil.isNullOrEmpty(line))
+                if (StringUtil.isNullOrEmpty(line)) {
+                    client.disconnect();
                     break;
+                }
                 client.send(IRCMessage.fromString(line));
             }
-            client.disconnect();
         } catch (Exception e) {
             e.printStackTrace();
         }

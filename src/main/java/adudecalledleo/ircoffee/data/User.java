@@ -18,6 +18,7 @@ public final class User {
         private int secondsIdle;
         private long signOnTime;
         private final ImmutableList.Builder<String> channelsBuilder;
+        private String certFPMessage;
 
         private Builder(String nickname, String username, String host, String realName) {
             this.nickname = nickname;
@@ -27,6 +28,7 @@ public final class User {
             server = "";
             serverInfo = "";
             channelsBuilder = ImmutableList.builder();
+            certFPMessage = "";
         }
 
         public Builder setServer(String server, String serverInfo) {
@@ -57,12 +59,18 @@ public final class User {
             return this;
         }
 
+        public Builder setCertFPMessage(String certFPMessage) {
+            this.certFPMessage = certFPMessage;
+            return this;
+        }
+
         public User build() {
             return new User(nickname, username, host, realName,
                     server, serverInfo,
                     isOperator,
                     isIdle, secondsIdle, signOnTime,
-                    channelsBuilder.build());
+                    channelsBuilder.build(),
+                    certFPMessage);
         }
     }
 
@@ -86,10 +94,12 @@ public final class User {
     private final long signOnTime;
     // RPL_WHOISCHANNELS
     private final List<String> channels;
+    // RPL_WHOISCERTFP
+    private final String certFPMessage;
 
     private User(String nickname, String username, String host, String realName, String server,
             String serverInfo, boolean isOperator, boolean isIdle,
-            int secondsIdle, long signOnTime, List<String> channels) {
+            int secondsIdle, long signOnTime, List<String> channels, String certFPMessage) {
         this.nickname = nickname;
         this.username = username;
         this.host = host;
@@ -101,6 +111,7 @@ public final class User {
         this.secondsIdle = secondsIdle;
         this.signOnTime = signOnTime;
         this.channels = channels;
+        this.certFPMessage = certFPMessage;
     }
 
     public String getNickname() {
@@ -147,6 +158,10 @@ public final class User {
         return channels;
     }
 
+    public String getCertFPMessage() {
+        return certFPMessage;
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -161,6 +176,7 @@ public final class User {
                 ", secondsIdle=" + secondsIdle +
                 ", signOnTime=" + signOnTime +
                 ", channels=" + channels +
+                ", certFPMessage='" + certFPMessage + '\'' +
                 '}';
     }
 }

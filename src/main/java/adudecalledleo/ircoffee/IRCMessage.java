@@ -67,6 +67,10 @@ public final class IRCMessage {
         tags.put(key, value);
     }
 
+    public void putTag(String key) {
+        putTag(key, "true");
+    }
+
     public String removeTag(String key) {
         return tags.remove(key);
     }

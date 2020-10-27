@@ -8,9 +8,10 @@ import adudecalledleo.ircoffee.event.connection.Bounced;
 import adudecalledleo.ircoffee.event.connection.Connected;
 import adudecalledleo.ircoffee.event.connection.Disconnected;
 import adudecalledleo.ircoffee.event.connection.Terminated;
-import adudecalledleo.ircoffee.event.response.ChannelListReceived;
-import adudecalledleo.ircoffee.event.response.UserListReceived;
-import adudecalledleo.ircoffee.event.response.WhoIsResponseReceived;
+import adudecalledleo.ircoffee.event.list.ChannelListReceived;
+import adudecalledleo.ircoffee.event.list.UserListReceived;
+import adudecalledleo.ircoffee.event.user.NicknameChanged;
+import adudecalledleo.ircoffee.event.user.WhoIsResponseReceived;
 import com.google.common.collect.ImmutableList;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
@@ -66,6 +67,10 @@ public final class IRCClient {
         for (UserListReceived listener : listeners)
             listener.onUserListReceived(client, channel, users);
     });
+    public final Event<NicknameChanged> onNicknameChanged = Event.create(NicknameChanged.class, listeners -> ((client, oldNickname, newNickname) -> {
+        for (NicknameChanged listener : listeners)
+            listener.onNicknameChanged(client, oldNickname, newNickname);
+    }));
 
     private String host = "127.0.0.1";
     private int port = -1;
@@ -203,10 +208,10 @@ public final class IRCClient {
             ChannelPipeline pipeline = ch.pipeline();
             if (sslCtx != null)
                 pipeline.addLast(sslCtx.newHandler(ch.alloc(), host, port));
-            pipeline.addLast(FRAME_DECODER);
-            pipeline.addLast(DECODER);
-            pipeline.addLast(ENCODER);
-            pipeline.addLast(new Handler());
+            pipeline.addLast("FrameDecoder", FRAME_DECODER);
+            pipeline.addLast("StringDecoder", DECODER);
+            pipeline.addLast("StringEncoder", ENCODER);
+            pipeline.addLast("MessageHandler", new Handler());
         }
     }
 
@@ -323,12 +328,18 @@ public final class IRCClient {
             }
             return false;
         }
+        if (RPL_WHOISCERTFP.equals(command)) {
+            User.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            if (whoIsBuilder != null)
+                whoIsBuilder.setCertFPMessage(message.getParam(2));
+        }
         if (RPL_ENDOFWHOIS.equals(command)) {
             User.Builder whoIsBuilder = buffers.whoIsBuilders.remove(message.getParam(1));
             if (whoIsBuilder != null)
                 onWhoIsResponseReceived.invoker().onWhoIsResponseReceived(this, whoIsBuilder.build());
             return false;
         }
+        // TODO capability negotiation
         // standalone numerics/special commands
         if (RPL_BOUNCE.equals(command)) {
             String newHost = message.getParam(1);
@@ -350,6 +361,7 @@ public final class IRCClient {
             return false;
         }
         if ("PING".equals(command)) {
+            // send PONG response
             send(IRCMessage.command("PONG", message.getParam(0)));
             return false;
         }
@@ -357,6 +369,11 @@ public final class IRCClient {
             onTerminated.invoker().onTerminated(this, message.getParam(0));
             if (isConnected())
                 disconnect();
+            return false;
+        }
+        if ("NICK".equals(command)) {
+            onNicknameChanged.invoker().onNicknameChanged(this, message.getSource(), message.getParam(0));
+            return false;
         }
         return true;
     }
