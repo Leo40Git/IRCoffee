@@ -251,7 +251,9 @@ public final class IRCClient {
             int clientCount = -1;
             try {
                 clientCount = Integer.parseInt(message.getParam(2));
-            } catch (Exception ignored) { }
+            } catch (Exception ignored) {
+                return false;
+            }
             String topic = message.getParam(3);
             buffers.channelListBuilder.add(new Channel(name, clientCount, topic));
             return false;
@@ -305,7 +307,7 @@ public final class IRCClient {
                 int secondsIdle;
                 try {
                     secondsIdle = Integer.parseUnsignedInt(message.getParam(2));
-                } catch (NumberFormatException e) {
+                } catch (NumberFormatException ignored) {
                     return false;
                 }
                 long signOnTime;

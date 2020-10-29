@@ -49,7 +49,7 @@ public class CLITest {
             System.err.println("WHOIS response:");
             System.err.format("%s (%s), host: %s, real name: %s%n",
                     user.getNickname(), user.getUsername(), user.getHost(), user.getRealName());
-            if (!user.getServer().isEmpty())
+            if (user.hasServerInfo())
                 System.err.format("Connected to server %s: %s%n", user.getServer(), user.getServerInfo());
             if (user.isOperator())
                 System.err.println("Operator");

@@ -130,6 +130,10 @@ public final class User {
         return realName;
     }
 
+    public boolean hasServerInfo() {
+        return !server.isEmpty();
+    }
+
     public String getServer() {
         return server;
     }
