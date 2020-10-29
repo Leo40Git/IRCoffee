@@ -5,6 +5,6 @@ import adudecalledleo.ircoffee.IRCClient;
 import java.util.List;
 
 @FunctionalInterface
-public interface UserListReceived {
-    void onUserListReceived(IRCClient client, String channel, List<String> users);
+public interface UsersInChannelReceived {
+    void onUsersInChannelReceived(IRCClient client, String channel, List<String> users);
 }

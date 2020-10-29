@@ -45,8 +45,8 @@ public class CLITest {
         client.onBounced.register((client1, newHost, newPort, info) ->
                 System.err.format("Bouncing to %s:%d: %s%n", newHost, newPort, info));
         client.onMessageReceived.register((client1, message) -> System.err.println(message));
-        client.onWhoIsResponseReceived.register((client1, user) -> {
-            System.err.println("WHOIS response:");
+        client.onWhoIsReplyReceived.register((client1, user) -> {
+            System.err.println("WHOIS reply:");
             System.err.format("%s (%s), host: %s, real name: %s%n",
                     user.getNickname(), user.getUsername(), user.getHost(), user.getRealName());
             if (user.hasServerInfo())
@@ -64,22 +64,30 @@ public class CLITest {
             List<String> channels = user.getChannels();
             if (!channels.isEmpty())
                 System.err.format("In the following channels: %s%n", String.join(", ", channels));
-            System.err.println("END WHOIS response");
+            System.err.println("END WHOIS reply");
         });
-        client.onChannelListReceived.register((client1, channels) -> {
+        client.onChannelsReceived.register((client1, channels) -> {
             System.err.format("%d channels in server:%n", channels.size());
             for (Channel channel : channels)
-                System.err.format("%s (%d): %s%n", channel.getName(), channel.getClientCount(), channel.getTopic());
+                System.err.format("- %s (%d): %s%n", channel.getName(), channel.getClientCount(), channel.getTopic());
             System.err.println("END Channel list");
         });
-        client.onUserListReceived.register((client1, channel, users) -> {
+        client.onUsersInChannelReceived.register((client1, channel, users) -> {
             System.err.format("%d users currently in channel %s:%n", users.size(), channel);
             for (String user : users)
-                System.err.println(user);
+                System.err.format(" - %s%n", user);
             System.err.println("END User list");
         });
         client.onNicknameChanged.register((client1, oldNickname, newNickname) ->
                 System.err.format("%s is now known as %s%n", oldNickname, newNickname));
+        client.onUserHostReplyReceived.register((client1, nickname1, host1, isOperator, isAway) ->
+                System.err.format("%s, host: %s, operator: %b, away: %b", nickname1, host1, isOperator, isAway));
+        client.onIsOnReplyReceived.register((client1, users) -> {
+            System.err.println("The following uses are on the server:");
+            for (String user : users)
+                System.err.format(" - %s%n", user);
+            System.err.println("END ISON reply");
+        });
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
             client.connect();

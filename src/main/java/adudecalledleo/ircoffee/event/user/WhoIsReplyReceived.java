@@ -4,6 +4,6 @@ import adudecalledleo.ircoffee.IRCClient;
 import adudecalledleo.ircoffee.data.User;
 
 @FunctionalInterface
-public interface WhoIsResponseReceived {
-    void onWhoIsResponseReceived(IRCClient client, User user);
+public interface WhoIsReplyReceived {
+    void onWhoIsReplyReceived(IRCClient client, User user);
 }

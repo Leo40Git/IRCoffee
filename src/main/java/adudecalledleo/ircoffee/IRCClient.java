@@ -8,10 +8,12 @@ import adudecalledleo.ircoffee.event.connection.Bounced;
 import adudecalledleo.ircoffee.event.connection.Connected;
 import adudecalledleo.ircoffee.event.connection.Disconnected;
 import adudecalledleo.ircoffee.event.connection.Terminated;
-import adudecalledleo.ircoffee.event.list.ChannelListReceived;
-import adudecalledleo.ircoffee.event.list.UserListReceived;
+import adudecalledleo.ircoffee.event.list.ChannelsReceived;
+import adudecalledleo.ircoffee.event.list.UsersInChannelReceived;
+import adudecalledleo.ircoffee.event.user.IsOnReplyReceived;
 import adudecalledleo.ircoffee.event.user.NicknameChanged;
-import adudecalledleo.ircoffee.event.user.WhoIsResponseReceived;
+import adudecalledleo.ircoffee.event.user.UserHostReplyReceived;
+import adudecalledleo.ircoffee.event.user.WhoIsReplyReceived;
 import com.google.common.collect.ImmutableList;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
@@ -55,22 +57,30 @@ public final class IRCClient {
         for (MessageReceived listener : listeners)
             listener.onMessageReceived(client, message.copy());
     });
-    public final Event<WhoIsResponseReceived> onWhoIsResponseReceived = Event.create(WhoIsResponseReceived.class, listeners -> (client, user) -> {
-        for (WhoIsResponseReceived listener : listeners)
-            listener.onWhoIsResponseReceived(client, user);
+    public final Event<WhoIsReplyReceived> onWhoIsReplyReceived = Event.create(WhoIsReplyReceived.class, listeners -> (client, user) -> {
+        for (WhoIsReplyReceived listener : listeners)
+            listener.onWhoIsReplyReceived(client, user);
     });
-    public final Event<ChannelListReceived> onChannelListReceived = Event.create(ChannelListReceived.class, listeners -> (client, channels) -> {
-        for (ChannelListReceived listener : listeners)
-            listener.onChannelListReceived(client, channels);
+    public final Event<ChannelsReceived> onChannelsReceived = Event.create(ChannelsReceived.class, listeners -> (client, channels) -> {
+        for (ChannelsReceived listener : listeners)
+            listener.onChannelsReceived(client, channels);
     });
-    public final Event<UserListReceived> onUserListReceived = Event.create(UserListReceived.class, listeners -> (client, channel, users) -> {
-        for (UserListReceived listener : listeners)
-            listener.onUserListReceived(client, channel, users);
+    public final Event<UsersInChannelReceived> onUsersInChannelReceived = Event.create(UsersInChannelReceived.class, listeners -> (client, channel, users) -> {
+        for (UsersInChannelReceived listener : listeners)
+            listener.onUsersInChannelReceived(client, channel, users);
     });
-    public final Event<NicknameChanged> onNicknameChanged = Event.create(NicknameChanged.class, listeners -> ((client, oldNickname, newNickname) -> {
+    public final Event<NicknameChanged> onNicknameChanged = Event.create(NicknameChanged.class, listeners -> (client, oldNickname, newNickname) -> {
         for (NicknameChanged listener : listeners)
             listener.onNicknameChanged(client, oldNickname, newNickname);
-    }));
+    });
+    public final Event<UserHostReplyReceived> onUserHostReplyReceived = Event.create(UserHostReplyReceived.class, listeners -> (client, nickname, host1, isOperator, isAway) -> {
+        for (UserHostReplyReceived listener : listeners)
+            listener.onUserHostReplyReceived(client, nickname, host1, isOperator, isAway);
+    });
+    public final Event<IsOnReplyReceived> onIsOnReplyReceived = Event.create(IsOnReplyReceived.class, listeners -> (client, users) -> {
+        for (IsOnReplyReceived listener : listeners)
+            listener.onIsOnReplyReceived(client, users);
+    });
 
     private String host = "127.0.0.1";
     private int port = -1;
@@ -233,7 +243,7 @@ public final class IRCClient {
 
     private static class Buffers {
         private ImmutableList.Builder<Channel> channelListBuilder;
-        private final Map<String, ImmutableList.Builder<String>> userListsBuilders = new HashMap<>();
+        private final Map<String, ImmutableList.Builder<String>> usersInChannelBuilders = new HashMap<>();
         private final Map<String, User.Builder> whoIsBuilders = new HashMap<>();
     }
     private final Buffers buffers = new Buffers();
@@ -248,7 +258,7 @@ public final class IRCClient {
             if (buffers.channelListBuilder == null)
                 buffers.channelListBuilder = ImmutableList.builder();
             String name = message.getParam(1);
-            int clientCount = -1;
+            int clientCount;
             try {
                 clientCount = Integer.parseInt(message.getParam(2));
             } catch (Exception ignored) {
@@ -259,24 +269,25 @@ public final class IRCClient {
             return false;
         }
         if (RPL_LISTEND.equals(command)) {
-            onChannelListReceived.invoker().onChannelListReceived(this, buffers.channelListBuilder.build());
+            onChannelsReceived.invoker().onChannelsReceived(this, buffers.channelListBuilder.build());
             buffers.channelListBuilder = null;
             return false;
         }
         // user list stuff
         if (RPL_NAMREPLY.equals(command)) {
             String channel = message.getParam(2);
-            ImmutableList.Builder<String> userListBuilder = buffers.userListsBuilders.computeIfAbsent(channel, key -> ImmutableList.builder());
+            ImmutableList.Builder<String> builder = buffers.usersInChannelBuilders.computeIfAbsent(channel,
+                    key -> ImmutableList.builder());
             String usersString = message.getParam(3);
             if (usersString != null)
-                userListBuilder.add(usersString.split(" "));
+                builder.add(usersString.split(" "));
             return false;
         }
         if (RPL_ENDOFNAMES.equals(command)) {
             String channel = message.getParam(1);
-            ImmutableList.Builder<String> userListBuilder = buffers.userListsBuilders.remove(channel);
-            if (userListBuilder != null)
-                onUserListReceived.invoker().onUserListReceived(this, channel, userListBuilder.build());
+            ImmutableList.Builder<String> builder = buffers.usersInChannelBuilders.remove(channel);
+            if (builder != null)
+                onUsersInChannelReceived.invoker().onUsersInChannelReceived(this, channel, builder.build());
             return false;
         }
         // TODO ban list stuff
@@ -338,7 +349,7 @@ public final class IRCClient {
         if (RPL_ENDOFWHOIS.equals(command)) {
             User.Builder whoIsBuilder = buffers.whoIsBuilders.remove(message.getParam(1));
             if (whoIsBuilder != null)
-                onWhoIsResponseReceived.invoker().onWhoIsResponseReceived(this, whoIsBuilder.build());
+                onWhoIsReplyReceived.invoker().onWhoIsReplyReceived(this, whoIsBuilder.build());
             return false;
         }
         // TODO capability negotiation
@@ -360,6 +371,28 @@ public final class IRCClient {
                     e.printStackTrace();
                 }
             }
+            return false;
+        }
+        if (RPL_USERHOST.equals(command)) {
+            String[] userHostStrs = message.getParam(1).split(" ");
+            for (String userHostStr : userHostStrs) {
+                String[] parts = userHostStr.split(" ");
+                boolean isOperator = parts[0].endsWith("*");
+                String nickname = isOperator ? parts[0].substring(0, parts[0].length() - 1) : parts[0];
+                String host = parts[1];
+                boolean isAway = false;
+                if (host.startsWith("-"))
+                    isAway = true;
+                else if (!host.startsWith("+"))
+                    return false;
+                host = host.substring(1);
+                onUserHostReplyReceived.invoker().onUserHostReplyReceived(this, nickname, host, isOperator, isAway);
+            }
+            return false;
+        }
+        if (RPL_ISON.equals(command)) {
+            onIsOnReplyReceived.invoker().onIsOnReplyReceived(this,
+                    ImmutableList.copyOf(message.getParam(1).split(" ")));
             return false;
         }
         if ("PING".equals(command)) {
