@@ -1,4 +1,4 @@
-package adudecalledleo.ircoffee.event.connection;
+package adudecalledleo.ircoffee.event.capability;
 
 import adudecalledleo.ircoffee.IRCClient;
 

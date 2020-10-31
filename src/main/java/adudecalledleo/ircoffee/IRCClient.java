@@ -4,6 +4,7 @@ import adudecalledleo.ircoffee.data.Channel;
 import adudecalledleo.ircoffee.data.User;
 import adudecalledleo.ircoffee.event.Event;
 import adudecalledleo.ircoffee.event.MessageReceived;
+import adudecalledleo.ircoffee.event.capability.*;
 import adudecalledleo.ircoffee.event.connection.*;
 import adudecalledleo.ircoffee.event.list.*;
 import adudecalledleo.ircoffee.event.user.*;
