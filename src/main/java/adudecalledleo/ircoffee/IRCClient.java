@@ -4,17 +4,11 @@ import adudecalledleo.ircoffee.data.Channel;
 import adudecalledleo.ircoffee.data.User;
 import adudecalledleo.ircoffee.event.Event;
 import adudecalledleo.ircoffee.event.MessageReceived;
-import adudecalledleo.ircoffee.event.connection.Bounced;
-import adudecalledleo.ircoffee.event.connection.Connected;
-import adudecalledleo.ircoffee.event.connection.Disconnected;
-import adudecalledleo.ircoffee.event.connection.Terminated;
-import adudecalledleo.ircoffee.event.list.ChannelsReceived;
-import adudecalledleo.ircoffee.event.list.UsersInChannelReceived;
-import adudecalledleo.ircoffee.event.user.IsOnReplyReceived;
-import adudecalledleo.ircoffee.event.user.NicknameChanged;
-import adudecalledleo.ircoffee.event.user.UserHostReplyReceived;
-import adudecalledleo.ircoffee.event.user.WhoIsReplyReceived;
+import adudecalledleo.ircoffee.event.connection.*;
+import adudecalledleo.ircoffee.event.list.*;
+import adudecalledleo.ircoffee.event.user.*;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -31,6 +25,7 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import javax.net.ssl.SSLException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -52,6 +47,10 @@ public final class IRCClient {
     public final Event<Terminated> onTerminated = Event.create(Terminated.class, listeners -> (client, message) -> {
         for (Terminated listener : listeners)
             listener.onTerminated(client, message);
+    });
+    public final Event<FeaturesAdvertised> onFeaturesAdvertised = Event.create(FeaturesAdvertised.class, listeners -> (client, featureMap) -> {
+        for (FeaturesAdvertised listener : listeners)
+            listener.onFeaturesAdvertised(client, featureMap);
     });
     public final Event<MessageReceived> onMessageReceived = Event.create(MessageReceived.class, listeners -> (client, message) -> {
         for (MessageReceived listener : listeners)
@@ -394,6 +393,27 @@ public final class IRCClient {
             onIsOnReplyReceived.invoker().onIsOnReplyReceived(this,
                     ImmutableList.copyOf(message.getParam(1).split(" ")));
             return false;
+        }
+        if (RPL_ISUPPORT.equals(command)) {
+            ImmutableMap.Builder<String, List<String>> featureMapBuilder = ImmutableMap.builder();
+            for (int i = 1; i < message.getParamCount(); i++) {
+                String key = message.getParam(i);
+                if (key.contains(" "))
+                    break;
+                String value = "";
+                if (key.contains("=")) {
+                    String[] parts = key.split("=");
+                    key = parts[0];
+                    value = parts[1];
+                }
+                List<String> values;
+                if (value.isEmpty())
+                    values = ImmutableList.of();
+                else
+                    values = ImmutableList.copyOf(value.split(","));
+                featureMapBuilder.put(key, values);
+            }
+            onFeaturesAdvertised.invoker().onFeaturesAdvertised(this, featureMapBuilder.build());
         }
         if ("PING".equals(command)) {
             // send PONG response
