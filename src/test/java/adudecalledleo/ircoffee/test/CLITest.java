@@ -1,6 +1,6 @@
 package adudecalledleo.ircoffee.test;
 
-import adudecalledleo.ircoffee.data.Channel;
+import adudecalledleo.ircoffee.data.IRCChannel;
 import adudecalledleo.ircoffee.IRCClient;
 import adudecalledleo.ircoffee.IRCMessage;
 import io.netty.util.internal.StringUtil;
@@ -68,7 +68,7 @@ public class CLITest {
         });
         client.onChannelsReceived.register((client1, channels) -> {
             System.err.format("%d channels in server:%n", channels.size());
-            for (Channel channel : channels)
+            for (IRCChannel channel : channels)
                 System.err.format("- %s (%d): %s%n", channel.getName(), channel.getClientCount(), channel.getTopic());
             System.err.println("END Channel list");
         });

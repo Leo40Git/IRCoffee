@@ -1,17 +1,17 @@
 package adudecalledleo.ircoffee.extensions;
 
 import adudecalledleo.ircoffee.IRCClient;
+import adudecalledleo.ircoffee.event.CapabilityEvents;
 import adudecalledleo.ircoffee.event.Event;
-import adudecalledleo.ircoffee.event.capability.FeaturesAdvertised;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Collects supported features via the {@link FeaturesAdvertised} event.
+ * Collects supported features via the {@link CapabilityEvents.FeaturesAdvertised} event.
  */
-public final class FeaturesCollector extends ClientExtension implements FeaturesAdvertised {
+public final class FeaturesCollector extends ClientExtension implements CapabilityEvents.FeaturesAdvertised {
     @FunctionalInterface
     public interface Updated {
         void onFeaturesUpdated(IRCClient client, FeaturesCollector collector);

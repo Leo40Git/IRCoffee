@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-public final class User {
+public final class IRCUser {
     @SuppressWarnings("UnusedReturnValue")
     public static final class Builder {
         private final String nickname;
@@ -64,8 +64,8 @@ public final class User {
             return this;
         }
 
-        public User build() {
-            return new User(nickname, username, host, realName,
+        public IRCUser build() {
+            return new IRCUser(nickname, username, host, realName,
                     server, serverInfo,
                     isOperator,
                     isIdle, secondsIdle, signOnTime,
@@ -97,7 +97,7 @@ public final class User {
     // RPL_WHOISCERTFP
     private final String certFPMessage;
 
-    private User(String nickname, String username, String host, String realName, String server,
+    private IRCUser(String nickname, String username, String host, String realName, String server,
             String serverInfo, boolean isOperator, boolean isIdle,
             int secondsIdle, long signOnTime, List<String> channels, String certFPMessage) {
         this.nickname = nickname;

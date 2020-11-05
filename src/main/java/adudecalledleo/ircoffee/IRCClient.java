@@ -1,13 +1,8 @@
 package adudecalledleo.ircoffee;
 
-import adudecalledleo.ircoffee.data.Channel;
-import adudecalledleo.ircoffee.data.User;
-import adudecalledleo.ircoffee.event.Event;
-import adudecalledleo.ircoffee.event.MessageReceived;
-import adudecalledleo.ircoffee.event.capability.*;
-import adudecalledleo.ircoffee.event.connection.*;
-import adudecalledleo.ircoffee.event.list.*;
-import adudecalledleo.ircoffee.event.user.*;
+import adudecalledleo.ircoffee.data.IRCChannel;
+import adudecalledleo.ircoffee.data.IRCUser;
+import adudecalledleo.ircoffee.event.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.netty.bootstrap.Bootstrap;
@@ -33,54 +28,66 @@ import java.util.Map;
 import static adudecalledleo.ircoffee.IRCNumerics.*;
 
 public final class IRCClient {
-    public final Event<Connected> onConnected = Event.create(Connected.class, listeners -> client -> {
-        for (Connected listener : listeners)
-            listener.onConnected(client);
-    });
-    public final Event<Disconnected> onDisconnected = Event.create(Disconnected.class, listeners -> client -> {
-        for (Disconnected listener : listeners)
-            listener.onDisconnected(client);
-    });
-    public final Event<Bounced> onBounced = Event.create(Bounced.class, listeners -> (client, newHost, newPort, message) -> {
-        for (Bounced listener : listeners)
-            listener.onBounced(client, newHost, newPort, message);
-    });
-    public final Event<Terminated> onTerminated = Event.create(Terminated.class, listeners -> (client, message) -> {
-        for (Terminated listener : listeners)
-            listener.onTerminated(client, message);
-    });
-    public final Event<FeaturesAdvertised> onFeaturesAdvertised = Event.create(FeaturesAdvertised.class, listeners -> (client, featureMap) -> {
-        for (FeaturesAdvertised listener : listeners)
-            listener.onFeaturesAdvertised(client, featureMap);
-    });
-    public final Event<MessageReceived> onMessageReceived = Event.create(MessageReceived.class, listeners -> (client, message) -> {
-        for (MessageReceived listener : listeners)
-            listener.onMessageReceived(client, message.copy());
-    });
-    public final Event<WhoIsReplyReceived> onWhoIsReplyReceived = Event.create(WhoIsReplyReceived.class, listeners -> (client, user) -> {
-        for (WhoIsReplyReceived listener : listeners)
-            listener.onWhoIsReplyReceived(client, user);
-    });
-    public final Event<ChannelsReceived> onChannelsReceived = Event.create(ChannelsReceived.class, listeners -> (client, channels) -> {
-        for (ChannelsReceived listener : listeners)
-            listener.onChannelsReceived(client, channels);
-    });
-    public final Event<UsersInChannelReceived> onUsersInChannelReceived = Event.create(UsersInChannelReceived.class, listeners -> (client, channel, users) -> {
-        for (UsersInChannelReceived listener : listeners)
-            listener.onUsersInChannelReceived(client, channel, users);
-    });
-    public final Event<NicknameChanged> onNicknameChanged = Event.create(NicknameChanged.class, listeners -> (client, oldNickname, newNickname) -> {
-        for (NicknameChanged listener : listeners)
-            listener.onNicknameChanged(client, oldNickname, newNickname);
-    });
-    public final Event<UserHostReplyReceived> onUserHostReplyReceived = Event.create(UserHostReplyReceived.class, listeners -> (client, nickname, host1, isOperator, isAway) -> {
-        for (UserHostReplyReceived listener : listeners)
-            listener.onUserHostReplyReceived(client, nickname, host1, isOperator, isAway);
-    });
-    public final Event<IsOnReplyReceived> onIsOnReplyReceived = Event.create(IsOnReplyReceived.class, listeners -> (client, users) -> {
-        for (IsOnReplyReceived listener : listeners)
-            listener.onIsOnReplyReceived(client, users);
-    });
+    public final Event<ConnectionEvents.Connected> onConnected = Event.create(ConnectionEvents.Connected.class,
+            listeners -> client -> {
+                for (ConnectionEvents.Connected listener : listeners)
+                    listener.onConnected(client);
+            });
+    public final Event<ConnectionEvents.Disconnected> onDisconnected = Event.create(ConnectionEvents.Disconnected.class,
+            listeners -> client -> {
+                for (ConnectionEvents.Disconnected listener : listeners)
+                    listener.onDisconnected(client);
+            });
+    public final Event<ConnectionEvents.Bounced> onBounced = Event.create(ConnectionEvents.Bounced.class,
+            listeners -> (client, newHost, newPort, message) -> {
+                for (ConnectionEvents.Bounced listener : listeners)
+                    listener.onBounced(client, newHost, newPort, message);
+            });
+    public final Event<ConnectionEvents.Terminated> onTerminated = Event.create(ConnectionEvents.Terminated.class,
+            listeners -> (client, message) -> {
+                for (ConnectionEvents.Terminated listener : listeners)
+                    listener.onTerminated(client, message);
+            });
+    public final Event<CapabilityEvents.FeaturesAdvertised> onFeaturesAdvertised = Event.create(
+            CapabilityEvents.FeaturesAdvertised.class, listeners -> (client, featureMap) -> {
+                for (CapabilityEvents.FeaturesAdvertised listener : listeners)
+                    listener.onFeaturesAdvertised(client, featureMap);
+            });
+    public final Event<MessageReceived> onMessageReceived = Event.create(MessageReceived.class,
+            listeners -> (client, message) -> {
+                for (MessageReceived listener : listeners)
+                    listener.onMessageReceived(client, message.copy());
+            });
+    public final Event<UserEvents.WhoIsReplyReceived> onWhoIsReplyReceived = Event.create(
+            UserEvents.WhoIsReplyReceived.class, listeners -> (client, user) -> {
+                for (UserEvents.WhoIsReplyReceived listener : listeners)
+                    listener.onWhoIsReplyReceived(client, user);
+            });
+    public final Event<ListEvents.ChannelsReceived> onChannelsReceived = Event.create(ListEvents.ChannelsReceived.class,
+            listeners -> (client, channels) -> {
+                for (ListEvents.ChannelsReceived listener : listeners)
+                    listener.onChannelsReceived(client, channels);
+            });
+    public final Event<ListEvents.UsersInChannelReceived> onUsersInChannelReceived = Event.create(
+            ListEvents.UsersInChannelReceived.class, listeners -> (client, channel, users) -> {
+                for (ListEvents.UsersInChannelReceived listener : listeners)
+                    listener.onUsersInChannelReceived(client, channel, users);
+            });
+    public final Event<UserEvents.NicknameChanged> onNicknameChanged = Event.create(UserEvents.NicknameChanged.class,
+            listeners -> (client, oldNickname, newNickname) -> {
+                for (UserEvents.NicknameChanged listener : listeners)
+                    listener.onNicknameChanged(client, oldNickname, newNickname);
+            });
+    public final Event<UserEvents.UserHostReplyReceived> onUserHostReplyReceived = Event.create(
+            UserEvents.UserHostReplyReceived.class, listeners -> (client, nickname, host1, isOperator, isAway) -> {
+                for (UserEvents.UserHostReplyReceived listener : listeners)
+                    listener.onUserHostReplyReceived(client, nickname, host1, isOperator, isAway);
+            });
+    public final Event<UserEvents.IsOnReplyReceived> onIsOnReplyReceived = Event.create(
+            UserEvents.IsOnReplyReceived.class, listeners -> (client, users) -> {
+                for (UserEvents.IsOnReplyReceived listener : listeners)
+                    listener.onIsOnReplyReceived(client, users);
+            });
 
     private String host = "127.0.0.1";
     private int port = -1;
@@ -91,7 +98,7 @@ public final class IRCClient {
     private String realName = "IRCoffee User";
 
     private EventLoopGroup group;
-    private io.netty.channel.Channel ch;
+    private Channel ch;
     private ChannelFuture lastWriteFuture;
 
     public String getHost() {
@@ -242,9 +249,9 @@ public final class IRCClient {
     }
 
     private static class Buffers {
-        private ImmutableList.Builder<Channel> channelListBuilder;
+        private ImmutableList.Builder<IRCChannel> channelListBuilder;
         private final Map<String, ImmutableList.Builder<String>> usersInChannelBuilders = new HashMap<>();
-        private final Map<String, User.Builder> whoIsBuilders = new HashMap<>();
+        private final Map<String, IRCUser.Builder> whoIsBuilders = new HashMap<>();
     }
     private final Buffers buffers = new Buffers();
 
@@ -265,7 +272,7 @@ public final class IRCClient {
                 return false;
             }
             String topic = message.getParam(3);
-            buffers.channelListBuilder.add(new Channel(name, clientCount, topic));
+            buffers.channelListBuilder.add(new IRCChannel(name, clientCount, topic));
             return false;
         }
         if (RPL_LISTEND.equals(command)) {
@@ -297,23 +304,23 @@ public final class IRCClient {
             String username = message.getParam(2);
             String host = message.getParam(3);
             String realName = message.getParam(5);
-            buffers.whoIsBuilders.put(nickname, User.builder(nickname, username, host, realName));
+            buffers.whoIsBuilders.put(nickname, IRCUser.builder(nickname, username, host, realName));
             return false;
         }
         if (RPL_WHOISSERVER.equals(command)) {
-            User.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            IRCUser.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
             if (whoIsBuilder != null)
                 whoIsBuilder.setServer(message.getParam(2), message.getParam(3));
             return false;
         }
         if (RPL_WHOISOPERATOR.equals(command)) {
-            User.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            IRCUser.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
             if (whoIsBuilder != null)
                 whoIsBuilder.setOperator();
             return false;
         }
         if (RPL_WHOISIDLE.equals(command)) {
-            User.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            IRCUser.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
             if (whoIsBuilder != null) {
                 int secondsIdle;
                 try {
@@ -333,7 +340,7 @@ public final class IRCClient {
             return false;
         }
         if (RPL_WHOISCHANNELS.equals(command)) {
-            User.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            IRCUser.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
             if (whoIsBuilder != null) {
                 String[] channels = message.getParam(2).split(" ");
                 for (String channel : channels)
@@ -342,12 +349,12 @@ public final class IRCClient {
             return false;
         }
         if (RPL_WHOISCERTFP.equals(command)) {
-            User.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            IRCUser.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
             if (whoIsBuilder != null)
                 whoIsBuilder.setCertFPMessage(message.getParam(2));
         }
         if (RPL_ENDOFWHOIS.equals(command)) {
-            User.Builder whoIsBuilder = buffers.whoIsBuilders.remove(message.getParam(1));
+            IRCUser.Builder whoIsBuilder = buffers.whoIsBuilders.remove(message.getParam(1));
             if (whoIsBuilder != null)
                 onWhoIsReplyReceived.invoker().onWhoIsReplyReceived(this, whoIsBuilder.build());
             return false;
