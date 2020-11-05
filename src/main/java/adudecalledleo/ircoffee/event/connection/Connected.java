@@ -4,5 +4,5 @@ import adudecalledleo.ircoffee.IRCClient;
 
 @FunctionalInterface
 public interface Connected {
-    void onConnected(IRCClient clinet);
+    void onConnected(IRCClient client);
 }

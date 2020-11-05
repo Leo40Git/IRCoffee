@@ -1,4 +1,4 @@
-package adudecalledleo.ircoffee.util;
+package adudecalledleo.ircoffee.extensions;
 
 import adudecalledleo.ircoffee.IRCClient;
 import adudecalledleo.ircoffee.event.Event;
@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  * Collects supported features via the {@link FeaturesAdvertised} event.
  */
-public final class FeaturesCollector implements FeaturesAdvertised {
+public final class FeaturesCollector extends ClientExtension implements FeaturesAdvertised {
     @FunctionalInterface
     public interface Updated {
         void onFeaturesUpdated(IRCClient client, FeaturesCollector collector);
@@ -21,34 +21,41 @@ public final class FeaturesCollector implements FeaturesAdvertised {
         for (Updated listener : listeners)
             listener.onFeaturesUpdated(client, collector);
     });
-    private final IRCClient client;
-    private final Map<String, List<String>> featureMap;
+    private final Map<String, List<String>> collectedFeatures;
 
-    public FeaturesCollector(IRCClient client) {
-        this.client = client;
-        featureMap = new HashMap<>();
+    public FeaturesCollector() {
+        collectedFeatures = new HashMap<>();
+    }
+
+    @Override
+    protected void doInstall(IRCClient client) {
         client.onFeaturesAdvertised.register(this);
     }
 
     @Override
+    protected void doUninstall(IRCClient client) {
+        client.onFeaturesAdvertised.unregister(this);
+    }
+
+    @Override
     public void onFeaturesAdvertised(IRCClient client, Map<String, List<String>> featureMap) {
-        if (this.client != client)
+        if (getClient() != client)
             return;
         for (Map.Entry<String, List<String>> entry : featureMap.entrySet()) {
             if (entry.getKey().startsWith("-")) {
-                this.featureMap.remove(entry.getKey().substring(1));
+                this.collectedFeatures.remove(entry.getKey().substring(1));
                 continue;
             }
-            this.featureMap.put(entry.getKey(), entry.getValue());
+            this.collectedFeatures.put(entry.getKey(), entry.getValue());
         }
         onFeaturesUpdated.invoker().onFeaturesUpdated(client, this);
     }
 
     public boolean hasFeature(String feature) {
-        return featureMap.containsKey(feature);
+        return collectedFeatures.containsKey(feature);
     }
 
     public List<String> getFeatureParams(String feature) {
-        return featureMap.get(feature);
+        return collectedFeatures.get(feature);
     }
 }
