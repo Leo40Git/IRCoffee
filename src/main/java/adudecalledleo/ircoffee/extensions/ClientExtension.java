@@ -22,9 +22,16 @@ public abstract class ClientExtension {
      * Installs this extension onto a client.
      *
      * <p>If already installed, uninstalls the extension from the previous client and installs it onto the specified client.
+     * <p>Does nothing if the specified client is the client this extension is currently installed onto.
      * @param client client to install extension onto
      */
     public final void installOn(IRCClient client) {
+        if (this.client == client)
+            return;
+        if (client == null) {
+            uninstall();
+            return;
+        }
         if (this.client != null)
             uninstall();
         this.client = client;

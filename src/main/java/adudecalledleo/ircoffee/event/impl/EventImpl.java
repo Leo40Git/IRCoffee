@@ -40,8 +40,8 @@ public final class EventImpl<T> extends Event<T> {
     public void register(T listener) {
         if (listener == null)
             throw new NullPointerException("listener == null!");
-        handlers.add(listener);
-        update();
+        if (handlers.add(listener))
+            update();
     }
 
     @Override
