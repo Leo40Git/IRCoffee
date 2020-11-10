@@ -56,12 +56,11 @@ public class CLITest {
             if (whoIsReply.hasCertFingerprint())
                 System.err.format("Has client certificate fingerprint %s%n", whoIsReply.getCertFingerprint());
             if (whoIsReply.isIdle()) {
-                long signOnTime = whoIsReply.getSignOnTime();
-                if (signOnTime < 0)
+                if (whoIsReply.hasSignOnTime())
                     System.err.format("Idle for %d seconds%n", whoIsReply.getSecondsIdle());
                 else
                     System.err.format("Idle for %d seconds since %s%n", whoIsReply.getSecondsIdle(),
-                            Instant.ofEpochSecond(signOnTime).toString());
+                            Instant.ofEpochSecond(whoIsReply.getSignOnTime()).toString());
             }
             List<String> channels = whoIsReply.getChannels();
             if (!channels.isEmpty())

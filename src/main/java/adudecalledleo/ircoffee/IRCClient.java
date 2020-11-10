@@ -333,7 +333,8 @@ public final class IRCClient {
                     signOnTime = Long.parseUnsignedLong(message.getParam(3));
                 } catch (NumberFormatException ignored) {
                     // this one's optional; if parse failed, it's probably missing
-                    signOnTime = -1;
+                    whoIsBuilder.setIdle(secondsIdle);
+                    return false;
                 }
                 whoIsBuilder.setIdle(secondsIdle, signOnTime);
             }

@@ -16,6 +16,7 @@ public final class IRCWhoIsReply {
         private boolean isOperator;
         private boolean isIdle;
         private int secondsIdle;
+        private boolean hasSignOnTime;
         private long signOnTime;
         private final ImmutableList.Builder<String> channelsBuilder;
         private String certFingerprint;
@@ -42,11 +43,16 @@ public final class IRCWhoIsReply {
             return this;
         }
 
-        public Builder setIdle(int secondsIdle, long signOnTime) {
+        public Builder setIdle(int secondsIdle) {
             isIdle = true;
             this.secondsIdle = secondsIdle;
-            this.signOnTime = signOnTime;
             return this;
+        }
+
+        public Builder setIdle(int secondsIdle, long signOnTime) {
+            hasSignOnTime = true;
+            this.signOnTime = signOnTime;
+            return setIdle(secondsIdle);
         }
 
         public Builder addChannel(String channel) {
@@ -63,7 +69,7 @@ public final class IRCWhoIsReply {
             return new IRCWhoIsReply(nickname, username, host, realName,
                     server, serverInfo,
                     isOperator,
-                    isIdle, secondsIdle, signOnTime,
+                    isIdle, secondsIdle, hasSignOnTime, signOnTime,
                     channelsBuilder.build(),
                     certFingerprint);
         }
@@ -86,6 +92,7 @@ public final class IRCWhoIsReply {
     // RPL_WHOISIDLE
     private final boolean isIdle;
     private final int secondsIdle;
+    private final boolean hasSignOnTime;
     private final long signOnTime;
     // RPL_WHOISCHANNELS
     private final List<String> channels;
@@ -94,7 +101,7 @@ public final class IRCWhoIsReply {
 
     private IRCWhoIsReply(String nickname, String username, String host, String realName, String server,
             String serverInfo, boolean isOperator, boolean isIdle,
-            int secondsIdle, long signOnTime, List<String> channels, String certFingerprint) {
+            int secondsIdle, boolean hasSignOnTime, long signOnTime, List<String> channels, String certFingerprint) {
         this.nickname = nickname;
         this.username = username;
         this.host = host;
@@ -104,6 +111,7 @@ public final class IRCWhoIsReply {
         this.isOperator = isOperator;
         this.isIdle = isIdle;
         this.secondsIdle = secondsIdle;
+        this.hasSignOnTime = hasSignOnTime;
         this.signOnTime = signOnTime;
         this.channels = channels;
         this.certFingerprint = certFingerprint;
@@ -147,6 +155,10 @@ public final class IRCWhoIsReply {
 
     public int getSecondsIdle() {
         return secondsIdle;
+    }
+
+    public boolean hasSignOnTime() {
+        return hasSignOnTime;
     }
 
     public long getSignOnTime() {
