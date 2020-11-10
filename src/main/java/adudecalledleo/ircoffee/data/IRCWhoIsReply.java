@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-public final class IRCUser {
+public final class IRCWhoIsReply {
     @SuppressWarnings("UnusedReturnValue")
     public static final class Builder {
         private final String nickname;
@@ -18,7 +18,7 @@ public final class IRCUser {
         private int secondsIdle;
         private long signOnTime;
         private final ImmutableList.Builder<String> channelsBuilder;
-        private String certFPMessage;
+        private String certFingerprint;
 
         private Builder(String nickname, String username, String host, String realName) {
             this.nickname = nickname;
@@ -28,7 +28,7 @@ public final class IRCUser {
             server = "";
             serverInfo = "";
             channelsBuilder = ImmutableList.builder();
-            certFPMessage = "";
+            certFingerprint = "";
         }
 
         public Builder setServer(String server, String serverInfo) {
@@ -54,23 +54,18 @@ public final class IRCUser {
             return this;
         }
 
-        public Builder addChannels(String... channels) {
-            channelsBuilder.add(channels);
+        public Builder setCertFingerprint(String certFingerprint) {
+            this.certFingerprint = certFingerprint;
             return this;
         }
 
-        public Builder setCertFPMessage(String certFPMessage) {
-            this.certFPMessage = certFPMessage;
-            return this;
-        }
-
-        public IRCUser build() {
-            return new IRCUser(nickname, username, host, realName,
+        public IRCWhoIsReply build() {
+            return new IRCWhoIsReply(nickname, username, host, realName,
                     server, serverInfo,
                     isOperator,
                     isIdle, secondsIdle, signOnTime,
                     channelsBuilder.build(),
-                    certFPMessage);
+                    certFingerprint);
         }
     }
 
@@ -95,11 +90,11 @@ public final class IRCUser {
     // RPL_WHOISCHANNELS
     private final List<String> channels;
     // RPL_WHOISCERTFP
-    private final String certFPMessage;
+    private final String certFingerprint;
 
-    private IRCUser(String nickname, String username, String host, String realName, String server,
+    private IRCWhoIsReply(String nickname, String username, String host, String realName, String server,
             String serverInfo, boolean isOperator, boolean isIdle,
-            int secondsIdle, long signOnTime, List<String> channels, String certFPMessage) {
+            int secondsIdle, long signOnTime, List<String> channels, String certFingerprint) {
         this.nickname = nickname;
         this.username = username;
         this.host = host;
@@ -111,7 +106,7 @@ public final class IRCUser {
         this.secondsIdle = secondsIdle;
         this.signOnTime = signOnTime;
         this.channels = channels;
-        this.certFPMessage = certFPMessage;
+        this.certFingerprint = certFingerprint;
     }
 
     public String getNickname() {
@@ -162,13 +157,17 @@ public final class IRCUser {
         return channels;
     }
 
-    public String getCertFPMessage() {
-        return certFPMessage;
+    public boolean hasCertFingerprint() {
+        return !certFingerprint.isEmpty();
+    }
+
+    public String getCertFingerprint() {
+        return certFingerprint;
     }
 
     @Override
     public String toString() {
-        return "User{" +
+        return "IRCWhoIsReply{" +
                 "nickname='" + nickname + '\'' +
                 ", username='" + username + '\'' +
                 ", host='" + host + '\'' +
@@ -180,7 +179,7 @@ public final class IRCUser {
                 ", secondsIdle=" + secondsIdle +
                 ", signOnTime=" + signOnTime +
                 ", channels=" + channels +
-                ", certFPMessage='" + certFPMessage + '\'' +
+                ", certFingerprint='" + certFingerprint + '\'' +
                 '}';
     }
 }

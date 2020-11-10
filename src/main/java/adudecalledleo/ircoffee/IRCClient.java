@@ -1,7 +1,7 @@
 package adudecalledleo.ircoffee;
 
 import adudecalledleo.ircoffee.data.IRCChannel;
-import adudecalledleo.ircoffee.data.IRCUser;
+import adudecalledleo.ircoffee.data.IRCWhoIsReply;
 import adudecalledleo.ircoffee.event.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -59,9 +59,9 @@ public final class IRCClient {
                     listener.onMessageReceived(client, message.copy());
             });
     public final Event<UserEvents.WhoIsReplyReceived> onWhoIsReplyReceived = Event.create(
-            UserEvents.WhoIsReplyReceived.class, listeners -> (client, user) -> {
+            UserEvents.WhoIsReplyReceived.class, listeners -> (client, whoIsReply) -> {
                 for (UserEvents.WhoIsReplyReceived listener : listeners)
-                    listener.onWhoIsReplyReceived(client, user);
+                    listener.onWhoIsReplyReceived(client, whoIsReply);
             });
     public final Event<ListEvents.ChannelsReceived> onChannelsReceived = Event.create(ListEvents.ChannelsReceived.class,
             listeners -> (client, channels) -> {
@@ -251,7 +251,7 @@ public final class IRCClient {
     private static class Buffers {
         private ImmutableList.Builder<IRCChannel> channelListBuilder;
         private final Map<String, ImmutableList.Builder<String>> usersInChannelBuilders = new HashMap<>();
-        private final Map<String, IRCUser.Builder> whoIsBuilders = new HashMap<>();
+        private final Map<String, IRCWhoIsReply.Builder> whoIsBuilders = new HashMap<>();
     }
     private final Buffers buffers = new Buffers();
 
@@ -304,23 +304,23 @@ public final class IRCClient {
             String username = message.getParam(2);
             String host = message.getParam(3);
             String realName = message.getParam(5);
-            buffers.whoIsBuilders.put(nickname, IRCUser.builder(nickname, username, host, realName));
+            buffers.whoIsBuilders.put(nickname, IRCWhoIsReply.builder(nickname, username, host, realName));
             return false;
         }
         if (RPL_WHOISSERVER.equals(command)) {
-            IRCUser.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            IRCWhoIsReply.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
             if (whoIsBuilder != null)
                 whoIsBuilder.setServer(message.getParam(2), message.getParam(3));
             return false;
         }
         if (RPL_WHOISOPERATOR.equals(command)) {
-            IRCUser.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            IRCWhoIsReply.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
             if (whoIsBuilder != null)
                 whoIsBuilder.setOperator();
             return false;
         }
         if (RPL_WHOISIDLE.equals(command)) {
-            IRCUser.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            IRCWhoIsReply.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
             if (whoIsBuilder != null) {
                 int secondsIdle;
                 try {
@@ -340,7 +340,7 @@ public final class IRCClient {
             return false;
         }
         if (RPL_WHOISCHANNELS.equals(command)) {
-            IRCUser.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            IRCWhoIsReply.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
             if (whoIsBuilder != null) {
                 String[] channels = message.getParam(2).split(" ");
                 for (String channel : channels)
@@ -349,12 +349,17 @@ public final class IRCClient {
             return false;
         }
         if (RPL_WHOISCERTFP.equals(command)) {
-            IRCUser.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
-            if (whoIsBuilder != null)
-                whoIsBuilder.setCertFPMessage(message.getParam(2));
+            IRCWhoIsReply.Builder whoIsBuilder = buffers.whoIsBuilders.get(message.getParam(1));
+            if (whoIsBuilder != null) {
+                String param2 = message.getParam(2);
+                int lastSpace = param2.lastIndexOf(' ');
+                if (lastSpace > 0)
+                    param2 = param2.substring(lastSpace + 1);
+                whoIsBuilder.setCertFingerprint(param2);
+            }
         }
         if (RPL_ENDOFWHOIS.equals(command)) {
-            IRCUser.Builder whoIsBuilder = buffers.whoIsBuilders.remove(message.getParam(1));
+            IRCWhoIsReply.Builder whoIsBuilder = buffers.whoIsBuilders.remove(message.getParam(1));
             if (whoIsBuilder != null)
                 onWhoIsReplyReceived.invoker().onWhoIsReplyReceived(this, whoIsBuilder.build());
             return false;

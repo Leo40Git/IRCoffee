@@ -45,23 +45,25 @@ public class CLITest {
         client.onBounced.register((client1, newHost, newPort, info) ->
                 System.err.format("Bouncing to %s:%d: %s%n", newHost, newPort, info));
         client.onMessageReceived.register((client1, message) -> System.err.println(message));
-        client.onWhoIsReplyReceived.register((client1, user) -> {
+        client.onWhoIsReplyReceived.register((client1, whoIsReply) -> {
             System.err.println("WHOIS reply:");
             System.err.format("%s (%s), host: %s, real name: %s%n",
-                    user.getNickname(), user.getUsername(), user.getHost(), user.getRealName());
-            if (user.hasServerInfo())
-                System.err.format("Connected to server %s: %s%n", user.getServer(), user.getServerInfo());
-            if (user.isOperator())
+                    whoIsReply.getNickname(), whoIsReply.getUsername(), whoIsReply.getHost(), whoIsReply.getRealName());
+            if (whoIsReply.hasServerInfo())
+                System.err.format("Connected to server %s: %s%n", whoIsReply.getServer(), whoIsReply.getServerInfo());
+            if (whoIsReply.isOperator())
                 System.err.println("Operator");
-            if (user.isIdle()) {
-                long signOnTime = user.getSignOnTime();
+            if (whoIsReply.hasCertFingerprint())
+                System.err.format("Has client certificate fingerprint %s%n", whoIsReply.getCertFingerprint());
+            if (whoIsReply.isIdle()) {
+                long signOnTime = whoIsReply.getSignOnTime();
                 if (signOnTime < 0)
-                    System.err.format("Idle for %d seconds%n", user.getSecondsIdle());
+                    System.err.format("Idle for %d seconds%n", whoIsReply.getSecondsIdle());
                 else
-                    System.err.format("Idle for %d seconds since %s%n", user.getSecondsIdle(),
+                    System.err.format("Idle for %d seconds since %s%n", whoIsReply.getSecondsIdle(),
                             Instant.ofEpochSecond(signOnTime).toString());
             }
-            List<String> channels = user.getChannels();
+            List<String> channels = whoIsReply.getChannels();
             if (!channels.isEmpty())
                 System.err.format("In the following channels: %s%n", String.join(", ", channels));
             System.err.println("END WHOIS reply");

@@ -1,7 +1,7 @@
 package adudecalledleo.ircoffee.event;
 
 import adudecalledleo.ircoffee.IRCClient;
-import adudecalledleo.ircoffee.data.IRCUser;
+import adudecalledleo.ircoffee.data.IRCWhoIsReply;
 
 import java.util.List;
 
@@ -23,7 +23,7 @@ public final class UserEvents {
 
     @FunctionalInterface
     public interface WhoIsReplyReceived {
-        void onWhoIsReplyReceived(IRCClient client, IRCUser user);
+        void onWhoIsReplyReceived(IRCClient client, IRCWhoIsReply whoIsReply);
     }
 
     private UserEvents() { }
