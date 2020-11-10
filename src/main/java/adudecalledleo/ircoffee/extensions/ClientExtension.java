@@ -41,12 +41,10 @@ public abstract class ClientExtension {
      * @param client client to install extension onto
      */
     public final void installOn(IRCClient client) {
+        if (client == null)
+            throw new NullPointerException("client == null!");
         if (this.client == client)
             return;
-        if (client == null) {
-            uninstall();
-            return;
-        }
         if (this.client != null)
             uninstall();
         this.client = client;

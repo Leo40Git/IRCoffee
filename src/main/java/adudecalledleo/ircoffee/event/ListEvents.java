@@ -6,6 +6,8 @@ import adudecalledleo.ircoffee.data.IRCChannel;
 import java.util.List;
 
 public final class ListEvents {
+    private ListEvents() { }
+
     @FunctionalInterface
     public interface ChannelsReceived {
         void onChannelsReceived(IRCClient client, List<IRCChannel> channels);
@@ -16,5 +18,4 @@ public final class ListEvents {
         void onUsersInChannelReceived(IRCClient client, String channel, List<String> users);
     }
 
-    private ListEvents() { }
 }

@@ -3,6 +3,8 @@ package adudecalledleo.ircoffee.event;
 import adudecalledleo.ircoffee.IRCClient;
 
 public final class ConnectionEvents {
+    private ConnectionEvents() { }
+
     @FunctionalInterface
     public interface Connected {
         void onConnected(IRCClient client);
@@ -32,6 +34,4 @@ public final class ConnectionEvents {
     public interface Bounced {
         void onBounced(IRCClient client, String newHost, int newPort, String message);
     }
-
-    private ConnectionEvents() { }
 }

@@ -6,6 +6,8 @@ import adudecalledleo.ircoffee.data.IRCWhoIsReply;
 import java.util.List;
 
 public final class UserEvents {
+    private UserEvents() { }
+
     @FunctionalInterface
     public interface IsOnReplyReceived {
         void onIsOnReplyReceived(IRCClient client, List<String> users);
@@ -25,6 +27,4 @@ public final class UserEvents {
     public interface WhoIsReplyReceived {
         void onWhoIsReplyReceived(IRCClient client, IRCWhoIsReply whoIsReply);
     }
-
-    private UserEvents() { }
 }
