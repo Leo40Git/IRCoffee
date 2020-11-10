@@ -4,9 +4,7 @@ import adudecalledleo.ircoffee.IRCClient;
 import adudecalledleo.ircoffee.event.CapabilityEvents;
 import adudecalledleo.ircoffee.event.Event;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Collects supported features via the {@link CapabilityEvents.FeaturesAdvertised} event.
@@ -17,14 +15,16 @@ public final class FeaturesCollector extends ClientExtension implements Capabili
         void onFeaturesUpdated(IRCClient client, FeaturesCollector collector);
     }
 
-    private final Event<Updated> onFeaturesUpdated = Event.create(Updated.class, listeners -> (client, collector) -> {
+    public final Event<Updated> onFeaturesUpdated = Event.create(Updated.class, listeners -> (client, collector) -> {
         for (Updated listener : listeners)
             listener.onFeaturesUpdated(client, collector);
     });
     private final Map<String, List<String>> collectedFeatures;
+    private final Set<String> keySetView;
 
     public FeaturesCollector() {
         collectedFeatures = new HashMap<>();
+        keySetView = Collections.unmodifiableSet(collectedFeatures.keySet());
     }
 
     @Override
@@ -51,11 +51,19 @@ public final class FeaturesCollector extends ClientExtension implements Capabili
         onFeaturesUpdated.invoker().onFeaturesUpdated(client, this);
     }
 
+    public int getFeatureCount() {
+        return collectedFeatures.size();
+    }
+
+    public Set<String> getAllFeatures() {
+        return keySetView;
+    }
+
     public boolean hasFeature(String feature) {
         return collectedFeatures.containsKey(feature);
     }
 
     public List<String> getFeatureParams(String feature) {
-        return collectedFeatures.get(feature);
+        return collectedFeatures.getOrDefault(feature, Collections.emptyList());
     }
 }

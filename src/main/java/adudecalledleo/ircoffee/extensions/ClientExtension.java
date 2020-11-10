@@ -2,6 +2,8 @@ package adudecalledleo.ircoffee.extensions;
 
 import adudecalledleo.ircoffee.IRCClient;
 
+import java.util.function.Supplier;
+
 /**
  * Represents a class which extends an {@link adudecalledleo.ircoffee.IRCClient IRCClinet} instance's functionality.
  *
@@ -9,6 +11,19 @@ import adudecalledleo.ircoffee.IRCClient;
  */
 public abstract class ClientExtension {
     private IRCClient client;
+
+    /**
+     * Installs a client extension onto a client.
+     * @param extensionSupplier supplier that creates extension instance to install
+     * @param to client to install extension onto
+     * @param <T> type of extension
+     * @return newly created and installed extension
+     */
+    public static <T extends ClientExtension> T install(Supplier<T> extensionSupplier, IRCClient to) {
+        T extension = extensionSupplier.get();
+        extension.installOn(to);
+        return extension;
+    }
 
     /**
      * Gets the client this extension is currently installed on.

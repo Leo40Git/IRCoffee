@@ -3,6 +3,8 @@ package adudecalledleo.ircoffee.test;
 import adudecalledleo.ircoffee.data.IRCChannel;
 import adudecalledleo.ircoffee.IRCClient;
 import adudecalledleo.ircoffee.IRCMessage;
+import adudecalledleo.ircoffee.extensions.ClientExtension;
+import adudecalledleo.ircoffee.extensions.FeaturesCollector;
 import io.netty.util.internal.StringUtil;
 
 import java.io.BufferedReader;
@@ -10,6 +12,7 @@ import java.io.InputStreamReader;
 import java.time.Instant;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class CLITest {
     public static void main(String[] args) {
@@ -32,12 +35,14 @@ public class CLITest {
         String username = scanner.nextLine();
         System.out.print("Enter real name: ");
         String realName = scanner.nextLine();
+
         IRCClient client = new IRCClient();
         client.setHost(host);
         client.setPort(port);
         client.setInitialNickname(nickname);
         client.setUsername(username);
         client.setRealName(realName);
+
         client.onConnected.register(client1 -> System.err.println("Connected to server."));
         client.onDisconnected.register(client1 ->  System.err.println("Disconnected from server."));
         client.onTerminated.register((client1, message) ->
@@ -89,6 +94,19 @@ public class CLITest {
                 System.err.format(" - %s%n", user);
             System.err.println("END ISON reply");
         });
+
+        FeaturesCollector featuresCollector = ClientExtension.install(FeaturesCollector::new, client);
+        featuresCollector.onFeaturesUpdated.register((client1, collector) -> {
+            System.err.format("Got %d features:", collector.getFeatureCount());
+            for (String feature : collector.getAllFeatures()) {
+                List<String> params = collector.getFeatureParams(feature);
+                if (params.isEmpty())
+                    System.err.format(" - %s%n", feature);
+                else
+                    System.err.format(" - %s = %s%n", feature, String.join(", ", params));
+            }
+        });
+
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
             client.connect();
