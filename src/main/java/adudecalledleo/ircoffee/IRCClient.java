@@ -28,6 +28,8 @@ import java.util.Map;
 import static adudecalledleo.ircoffee.IRCNumerics.*;
 
 public final class IRCClient {
+    public static final String CAP_LS_VERSION = "302";
+
     public final Event<ConnectionEvents.Connected> onConnected = Event.create(ConnectionEvents.Connected.class,
             listeners -> client -> {
                 for (ConnectionEvents.Connected listener : listeners)
@@ -93,10 +95,10 @@ public final class IRCClient {
     private int port = -1;
     private boolean sslEnabled = false;
 
-    private boolean registerConnection = true;
     private String initialNickname = "IRCoffee";
     private String username = "IRCoffee";
     private String realName = "IRCoffee User";
+    private String password = "";
 
     private EventLoopGroup group;
     private Channel ch;
@@ -126,14 +128,6 @@ public final class IRCClient {
         this.sslEnabled = sslEnabled;
     }
 
-    public boolean isRegisterConnection() {
-        return registerConnection;
-    }
-
-    public void setRegisterConnection(boolean registerConnection) {
-        this.registerConnection = registerConnection;
-    }
-
     public String getInitialNickname() {
         return initialNickname;
     }
@@ -158,6 +152,14 @@ public final class IRCClient {
         this.realName = realName;
     }
 
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
     public void connect() throws SSLException, InterruptedException {
         if (isConnected())
             throw new IllegalStateException("Already connected!");
@@ -175,10 +177,19 @@ public final class IRCClient {
                     .handler(new Initializer(sslCtx));
             ch = b.connect(host, port).sync().channel();
             lastWriteFuture = null;
-            if (registerConnection) {
-                sendCommand("NICK", initialNickname);
+
+            // declare capability support
+            // TODO actually implement this
+            //sendCommand("CAP", "LS", CAP_LS_VERSION);
+            // ...then password (if available)
+            if (!password.isEmpty())
+                sendCommand("PASS", password);
+            // and finally, nick and user
+            sendCommand("NICK", initialNickname);
+            // user *can* be omitted... on non-compliant servers (Twitch chat IRC interface)
+            if (username.isEmpty())
                 sendCommand("USER", username, "0", "*", realName);
-            }
+
             onConnected.invoker().onConnected(this);
         } catch (SSLException | InterruptedException e) {
             if (group != null)
