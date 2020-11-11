@@ -1,5 +1,6 @@
 package adudecalledleo.ircoffee;
 
+import adudecalledleo.ircoffee.caps.CapabilityNegotiator;
 import adudecalledleo.ircoffee.data.IRCChannel;
 import adudecalledleo.ircoffee.data.IRCWhoIsReply;
 import adudecalledleo.ircoffee.event.*;
@@ -100,6 +101,8 @@ public final class IRCClient {
     private String realName = "IRCoffee User";
     private String password = "";
 
+    private CapabilityNegotiator capabilityNegotiator;
+
     private EventLoopGroup group;
     private Channel ch;
     private ChannelFuture lastWriteFuture;
@@ -160,6 +163,14 @@ public final class IRCClient {
         this.password = password;
     }
 
+    public CapabilityNegotiator getCapabilityNegotiator() {
+        return capabilityNegotiator;
+    }
+
+    public void setCapabilityNegotiator(CapabilityNegotiator capabilityNegotiator) {
+        this.capabilityNegotiator = capabilityNegotiator;
+    }
+
     public void connect() throws SSLException, InterruptedException {
         if (isConnected())
             throw new IllegalStateException("Already connected!");
@@ -178,9 +189,9 @@ public final class IRCClient {
             ch = b.connect(host, port).sync().channel();
             lastWriteFuture = null;
 
-            // declare capability support
-            // TODO actually implement this
-            //sendCommand("CAP", "LS", CAP_LS_VERSION);
+            // declare capability support (if negotiator is set)
+            if (capabilityNegotiator != null)
+                sendCommand("CAP", "LS", CAP_LS_VERSION);
             // ...then password (if available)
             if (!password.isEmpty())
                 sendCommand("PASS", password);
@@ -468,6 +479,12 @@ public final class IRCClient {
         }
         if ("NICK".equals(command)) {
             onNicknameChanged.invoker().onNicknameChanged(this, message.getSource(), message.getParam(0));
+            return false;
+        }
+        if ("CAP".equals(command)) {
+            if (capabilityNegotiator == null)
+                return true;
+            // TODO
             return false;
         }
         return true;

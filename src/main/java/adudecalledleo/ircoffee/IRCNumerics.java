@@ -15,7 +15,8 @@ public final class IRCNumerics {
     public static String RPL_CREATED = "003";
     public static String RPL_MYINFO = "004";
     /**
-     * @deprecated Use {@link #RPL_BOUNCE} instead.
+     * @deprecated This numeric has been repurposed for {@link #RPL_ISUPPORT}.<br>
+     * Use {@link #RPL_BOUNCE} instead.
      */
     @Deprecated
     public static String RPL_BOUNCE_OLD = "005";

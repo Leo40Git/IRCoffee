@@ -8,6 +8,7 @@ import java.util.Map;
 public final class CapabilityEvents {
     private CapabilityEvents() { }
 
+    @FunctionalInterface
     public interface FeaturesAdvertised {
         void onFeaturesAdvertised(IRCClient client, Map<String, List<String>> featureMap);
     }

@@ -34,6 +34,14 @@ public abstract class ClientExtension {
     }
 
     /**
+     * Checks if this extension is installed onto a client or not.
+     * @return {@code true} if the extension is installed onto a client, {@code false} otherwise
+     */
+    public final boolean isInstalled() {
+        return client != null;
+    }
+
+    /**
      * Installs this extension onto a client.
      *
      * <p>If already installed, uninstalls the extension from the previous client and installs it onto the specified client.
@@ -45,8 +53,7 @@ public abstract class ClientExtension {
             throw new NullPointerException("client == null!");
         if (this.client == client)
             return;
-        if (this.client != null)
-            uninstall();
+        uninstall();
         this.client = client;
         doInstall(this.client);
     }
@@ -57,7 +64,7 @@ public abstract class ClientExtension {
      * <p>Does nothing if this extension isn't installed onto a client.
      */
     public final void uninstall() {
-        if (this.client != null) {
+        if (isInstalled()) {
             doUninstall(client);
             client = null;
         }
