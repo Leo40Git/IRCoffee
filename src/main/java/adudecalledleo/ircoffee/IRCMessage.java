@@ -158,7 +158,7 @@ public final class IRCMessage {
         result.setCommand(parts[0]);
         int i = 1;
         for (; i < parts.length; i++) {
-            if (parts[i].startsWith(":"))
+            if (parts[i].startsWith(":") && i != parts.length - 1)
                 break;
             result.addParam(parts[i]);
         }

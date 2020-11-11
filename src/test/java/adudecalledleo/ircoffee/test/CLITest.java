@@ -97,7 +97,7 @@ public class CLITest {
 
         FeaturesCollector featuresCollector = ClientExtension.install(FeaturesCollector::new, client);
         featuresCollector.onFeaturesUpdated.register((client1, collector) -> {
-            System.err.format("Got %d features:", collector.getFeatureCount());
+            System.err.format("Got %d features:%n", collector.getFeatureCount());
             for (String feature : collector.getAllFeatures()) {
                 List<String> params = collector.getFeatureParams(feature);
                 if (params.isEmpty())
@@ -107,16 +107,18 @@ public class CLITest {
             }
         });
 
-        try {
-            BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        try(InputStreamReader isr = new InputStreamReader(System.in);
+                BufferedReader in = new BufferedReader(isr)) {
             client.connect();
             while (client.isConnected()) {
                 String line = in.readLine();
-                if (StringUtil.isNullOrEmpty(line)) {
-                    client.disconnect();
-                    break;
+                if (client.isConnected()) {
+                    if (StringUtil.isNullOrEmpty(line)) {
+                        client.disconnect();
+                        break;
+                    }
+                    client.send(IRCMessage.fromString(line));
                 }
-                client.send(IRCMessage.fromString(line));
             }
         } catch (Exception e) {
             e.printStackTrace();

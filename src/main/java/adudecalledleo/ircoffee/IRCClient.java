@@ -93,6 +93,7 @@ public final class IRCClient {
     private int port = -1;
     private boolean sslEnabled = false;
 
+    private boolean registerConnection = true;
     private String initialNickname = "IRCoffee";
     private String username = "IRCoffee";
     private String realName = "IRCoffee User";
@@ -123,6 +124,14 @@ public final class IRCClient {
 
     public void setSslEnabled(boolean sslEnabled) {
         this.sslEnabled = sslEnabled;
+    }
+
+    public boolean isRegisterConnection() {
+        return registerConnection;
+    }
+
+    public void setRegisterConnection(boolean registerConnection) {
+        this.registerConnection = registerConnection;
     }
 
     public String getInitialNickname() {
@@ -166,8 +175,10 @@ public final class IRCClient {
                     .handler(new Initializer(sslCtx));
             ch = b.connect(host, port).sync().channel();
             lastWriteFuture = null;
-            sendCommand("NICK", initialNickname);
-            sendCommand("USER", username, "0", "*", realName);
+            if (registerConnection) {
+                sendCommand("NICK", initialNickname);
+                sendCommand("USER", username, "0", "*", realName);
+            }
             onConnected.invoker().onConnected(this);
         } catch (SSLException | InterruptedException e) {
             if (group != null)
@@ -257,6 +268,9 @@ public final class IRCClient {
 
     private boolean handleMessage(IRCMessage message) {
         String command = message.getCommand().toUpperCase(Locale.ROOT);
+        // special case for RPL_NONE, which... does nothing
+        if (RPL_NONE.equals(command))
+            return false;
         // channel list stuff
         if (RPL_LISTSTART.equals(command))
             // this one isn't guaranteed, so ignore it
@@ -428,10 +442,11 @@ public final class IRCClient {
                 featureMapBuilder.put(key, values);
             }
             onFeaturesAdvertised.invoker().onFeaturesAdvertised(this, featureMapBuilder.build());
+            return false;
         }
         if ("PING".equals(command)) {
             // send PONG response
-            send(IRCMessage.command("PONG", message.getParam(0)));
+            sendCommand("PONG", message.getParam(0));
             return false;
         }
         if ("ERROR".equals(command)) {
