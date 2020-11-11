@@ -1,6 +1,5 @@
 package adudecalledleo.ircoffee;
 
-import adudecalledleo.ircoffee.caps.CapabilityNegotiator;
 import adudecalledleo.ircoffee.data.IRCChannel;
 import adudecalledleo.ircoffee.data.IRCWhoIsReply;
 import adudecalledleo.ircoffee.event.*;
@@ -91,17 +90,21 @@ public final class IRCClient {
                 for (UserEvents.IsOnReplyReceived listener : listeners)
                     listener.onIsOnReplyReceived(client, users);
             });
+    public final Event<CapMessageReceived> onCapMessageReceived = Event.create(
+            CapMessageReceived.class, listeners -> (client, message) -> {
+                for (CapMessageReceived listener : listeners)
+                    listener.onCapMessageReceived(client, message);
+            });
 
     private String host = "127.0.0.1";
     private int port = -1;
     private boolean sslEnabled = false;
+    private boolean capsEnabled;
 
     private String initialNickname = "IRCoffee";
     private String username = "IRCoffee";
     private String realName = "IRCoffee User";
     private String password = "";
-
-    private CapabilityNegotiator capabilityNegotiator;
 
     private EventLoopGroup group;
     private Channel ch;
@@ -129,6 +132,14 @@ public final class IRCClient {
 
     public void setSslEnabled(boolean sslEnabled) {
         this.sslEnabled = sslEnabled;
+    }
+
+    public boolean isCapsEnabled() {
+        return capsEnabled;
+    }
+
+    public void setCapsEnabled(boolean capsEnabled) {
+        this.capsEnabled = capsEnabled;
     }
 
     public String getInitialNickname() {
@@ -163,14 +174,6 @@ public final class IRCClient {
         this.password = password;
     }
 
-    public CapabilityNegotiator getCapabilityNegotiator() {
-        return capabilityNegotiator;
-    }
-
-    public void setCapabilityNegotiator(CapabilityNegotiator capabilityNegotiator) {
-        this.capabilityNegotiator = capabilityNegotiator;
-    }
-
     public void connect() throws SSLException, InterruptedException {
         if (isConnected())
             throw new IllegalStateException("Already connected!");
@@ -189,8 +192,8 @@ public final class IRCClient {
             ch = b.connect(host, port).sync().channel();
             lastWriteFuture = null;
 
-            // declare capability support (if negotiator is set)
-            if (capabilityNegotiator != null)
+            // declare capability support (if enabled)
+            if (capsEnabled)
                 sendCommand("CAP", "LS", CAP_LS_VERSION);
             // ...then password (if available)
             if (!password.isEmpty())
@@ -266,6 +269,10 @@ public final class IRCClient {
     }
 
     private class Handler extends SimpleChannelInboundHandler<String> {
+        private Handler() {
+            super(String.class);
+        }
+
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, String msg) {
             IRCMessage message = IRCMessage.fromString(msg);
@@ -288,6 +295,8 @@ public final class IRCClient {
     }
     private final Buffers buffers = new Buffers();
 
+    // we handle messages before they get passed to callbacks to facilitate *other* callbacks
+    // returns true to pass to callback, false otherwise
     private boolean handleMessage(IRCMessage message) {
         String command = message.getCommand().toUpperCase(Locale.ROOT);
         // special case for RPL_NONE, which... does nothing
@@ -482,10 +491,11 @@ public final class IRCClient {
             return false;
         }
         if ("CAP".equals(command)) {
-            if (capabilityNegotiator == null)
-                return true;
-            // TODO
-            return false;
+            if (capsEnabled) {
+                // send to separate event channel
+                onCapMessageReceived.invoker().onCapMessageReceived(this, message);
+                return false;
+            }
         }
         return true;
     }

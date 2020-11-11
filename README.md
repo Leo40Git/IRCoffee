@@ -6,4 +6,4 @@ May be fully IRCv3 compliant, one day.
  - [ ] IRCv3 compliance
    - [ ] Capability negotiation
      - [ ] SASL authentication support
- - [ ] DCC support
+ - [ ] DCC support (maybe)
