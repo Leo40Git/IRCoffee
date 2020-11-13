@@ -90,9 +90,9 @@ public final class IRCClient {
                 for (UserEvents.IsOnReplyReceived listener : listeners)
                     listener.onIsOnReplyReceived(client, users);
             });
-    public final Event<CapMessageReceived> onCapMessageReceived = Event.create(
-            CapMessageReceived.class, listeners -> (client, message) -> {
-                for (CapMessageReceived listener : listeners)
+    public final Event<CapabilityEvents.CapMessageReceived> onCapMessageReceived = Event.create(
+            CapabilityEvents.CapMessageReceived.class, listeners -> (client, message) -> {
+                for (CapabilityEvents.CapMessageReceived listener : listeners)
                     listener.onCapMessageReceived(client, message);
             });
 

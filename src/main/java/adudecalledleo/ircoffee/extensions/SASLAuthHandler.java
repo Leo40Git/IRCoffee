@@ -2,18 +2,19 @@ package adudecalledleo.ircoffee.extensions;
 
 import adudecalledleo.ircoffee.IRCClient;
 
+import java.util.List;
+
 /**
- * Adds SASL authentication support to an {@link IRCClient} instance.
+ * Handles SASL authentication.
+ *
+ * <p>Unlike other client extensions, this one isn't installed on the client itself - it's added as a
+ * listener to {@link CapabilityNegotiator}'s
+ * {@link CapabilityNegotiator.SASLAuthAvailable SASLAuthRequested} event. As such, this can be installed
+ * on multiple {@link CapabilityNegotiator}s at a time.
  */
-// TODO ACTUALLY IMPLEMENT THIS!!!
-public final class SASLAuthHandler extends ClientExtension {
+public class SASLAuthHandler implements CapabilityNegotiator.SASLAuthAvailable {
     @Override
-    protected void doInstall(IRCClient client) {
-
-    }
-
-    @Override
-    protected void doUninstall(IRCClient client) {
-
+    public void onSASLAuthAvailable(IRCClient client, List<String> methods) {
+        // TODO implement this...
     }
 }
