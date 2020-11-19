@@ -24,9 +24,9 @@ public final class EventImpl<T> extends Event<T> {
         update();
     }
 
-    private T[] getHandlerArray() {
+    private T[] getListenerArray() {
         //noinspection unchecked
-        T[] arr = (T[]) Array.newInstance(type, listeners.size());
+        T[] arr = (T[]) Array.newInstance(type, 0);
         return listeners.toArray(arr);
     }
 
@@ -34,7 +34,7 @@ public final class EventImpl<T> extends Event<T> {
         if (listeners.size() <= 1)
             invoker = Iterables.getFirst(listeners, emptyInvoker);
         else
-            invoker = invokerFactory.apply(getHandlerArray());
+            invoker = invokerFactory.apply(getListenerArray());
     }
 
     @Override

@@ -12,7 +12,7 @@ import java.util.List;
  * {@link CapabilityNegotiator.SASLAuthAvailable SASLAuthAvailable} event. As such, this can be installed
  * on multiple {@link CapabilityNegotiator}s at a time.
  */
-public class SASLAuthHandler implements CapabilityNegotiator.SASLAuthAvailable {
+public final class SASLAuthHandler implements CapabilityNegotiator.SASLAuthAvailable {
     @Override
     public void onSASLAuthAvailable(IRCClient client, List<String> methods) {
         // TODO implement this...
