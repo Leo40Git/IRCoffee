@@ -26,7 +26,7 @@ public final class EventImpl<T> extends Event<T> {
 
     private T[] getListenerArray() {
         //noinspection unchecked
-        T[] arr = (T[]) Array.newInstance(type, 0);
+        T[] arr = (T[]) Array.newInstance(type, listeners.size());
         return listeners.toArray(arr);
     }
 
