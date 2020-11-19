@@ -99,7 +99,7 @@ public final class IRCClient {
     private String host = "127.0.0.1";
     private int port = -1;
     private boolean sslEnabled = false;
-    private boolean capsEnabled;
+    private boolean capsEnabled = false;
 
     private String initialNickname = "IRCoffee";
     private String username = "IRCoffee";
@@ -195,7 +195,7 @@ public final class IRCClient {
             // declare capability support (if enabled)
             if (capsEnabled)
                 sendCommand("CAP", "LS", CAP_LS_VERSION);
-            // ...then password (if available)
+            // then password (if available)
             if (!password.isEmpty())
                 sendCommand("PASS", password);
             // and finally, nick and user

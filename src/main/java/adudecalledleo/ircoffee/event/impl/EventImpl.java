@@ -4,19 +4,20 @@ import adudecalledleo.ircoffee.event.Event;
 import com.google.common.collect.Iterables;
 
 import java.lang.reflect.Array;
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.function.Function;
 
 public final class EventImpl<T> extends Event<T> {
     private final Class<? super T> type;
     private final Function<T[], T> invokerFactory;
-    private final LinkedHashSet<T> handlers;
+    private final ArrayList<T> listeners;
     private final T emptyInvoker;
 
     public EventImpl(Class<? super T> type, Function<T[], T> invokerFactory) {
         this.type = type;
         this.invokerFactory = invokerFactory;
-        handlers = new LinkedHashSet<>();
+        listeners = new ArrayList<>();
         //noinspection unchecked
         T[] emptyArray = (T[]) Array.newInstance(type, 0);
         emptyInvoker = invokerFactory.apply(emptyArray);
@@ -25,13 +26,13 @@ public final class EventImpl<T> extends Event<T> {
 
     private T[] getHandlerArray() {
         //noinspection unchecked
-        T[] arr = (T[]) Array.newInstance(type, handlers.size());
-        return handlers.toArray(arr);
+        T[] arr = (T[]) Array.newInstance(type, listeners.size());
+        return listeners.toArray(arr);
     }
 
     private void update() {
-        if (handlers.size() <= 1)
-            invoker = Iterables.getFirst(handlers, emptyInvoker);
+        if (listeners.size() <= 1)
+            invoker = Iterables.getFirst(listeners, emptyInvoker);
         else
             invoker = invokerFactory.apply(getHandlerArray());
     }
@@ -40,7 +41,7 @@ public final class EventImpl<T> extends Event<T> {
     public void register(T listener) {
         if (listener == null)
             throw new NullPointerException("listener == null!");
-        if (handlers.add(listener))
+        if (listeners.add(listener))
             update();
     }
 
@@ -48,7 +49,7 @@ public final class EventImpl<T> extends Event<T> {
     public void unregister(T listener) {
         if (listener == null)
             return;
-        if (handlers.remove(listener))
+        if (listeners.removeAll(Collections.singleton(listener)))
             update();
     }
 }

@@ -3,8 +3,10 @@ package adudecalledleo.ircoffee.test;
 import adudecalledleo.ircoffee.data.IRCChannel;
 import adudecalledleo.ircoffee.IRCClient;
 import adudecalledleo.ircoffee.IRCMessage;
+import adudecalledleo.ircoffee.extensions.CapabilityNegotiator;
 import adudecalledleo.ircoffee.extensions.ClientExtension;
 import adudecalledleo.ircoffee.extensions.FeaturesCollector;
+import adudecalledleo.ircoffee.extensions.SASLAuthHandler;
 import io.netty.util.internal.StringUtil;
 
 import java.io.BufferedReader;
@@ -106,6 +108,11 @@ public class CLITest {
                     System.err.format(" - %s = %s%n", feature, String.join(", ", params));
             }
         });
+        client.setCapsEnabled(true);
+        CapabilityNegotiator capabilityNegotiator = ClientExtension.install(CapabilityNegotiator::new, client);
+        // TODO generic cap events
+        SASLAuthHandler saslAuthHandler = new SASLAuthHandler();
+        capabilityNegotiator.onSASLAuthAvailable.register(saslAuthHandler);
 
         try(InputStreamReader isr = new InputStreamReader(System.in);
                 BufferedReader in = new BufferedReader(isr)) {

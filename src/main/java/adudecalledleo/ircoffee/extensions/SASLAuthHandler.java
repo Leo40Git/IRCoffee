@@ -9,7 +9,7 @@ import java.util.List;
  *
  * <p>Unlike other client extensions, this one isn't installed on the client itself - it's added as a
  * listener to {@link CapabilityNegotiator}'s
- * {@link CapabilityNegotiator.SASLAuthAvailable SASLAuthRequested} event. As such, this can be installed
+ * {@link CapabilityNegotiator.SASLAuthAvailable SASLAuthAvailable} event. As such, this can be installed
  * on multiple {@link CapabilityNegotiator}s at a time.
  */
 public class SASLAuthHandler implements CapabilityNegotiator.SASLAuthAvailable {

@@ -13,8 +13,8 @@ public abstract class ClientExtension {
     private IRCClient client;
 
     /**
-     * Installs a client extension onto a client.
-     * @param extensionSupplier supplier that creates extension instance to install
+     * Installs an extension onto a client.
+     * @param extensionSupplier supplier that creates extension to install
      * @param to client to install extension onto
      * @param <T> type of extension
      * @return newly created and installed extension
