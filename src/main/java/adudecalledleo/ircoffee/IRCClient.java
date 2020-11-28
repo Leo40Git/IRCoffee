@@ -106,6 +106,7 @@ public final class IRCClient {
     private String realName = "IRCoffee User";
     private String password = "";
 
+    private boolean connected = false;
     private EventLoopGroup group;
     private Channel ch;
     private ChannelFuture lastWriteFuture;
@@ -115,6 +116,8 @@ public final class IRCClient {
     }
 
     public void setHost(String host) {
+        if (!connected)
+            return;
         this.host = host;
     }
 
@@ -123,6 +126,8 @@ public final class IRCClient {
     }
 
     public void setPort(int port) {
+        if (!connected)
+            return;
         this.port = port;
     }
 
@@ -131,6 +136,8 @@ public final class IRCClient {
     }
 
     public void setSslEnabled(boolean sslEnabled) {
+        if (!connected)
+            return;
         this.sslEnabled = sslEnabled;
     }
 
@@ -139,6 +146,8 @@ public final class IRCClient {
     }
 
     public void setCapsEnabled(boolean capsEnabled) {
+        if (!connected)
+            return;
         this.capsEnabled = capsEnabled;
     }
 
@@ -147,6 +156,8 @@ public final class IRCClient {
     }
 
     public void setInitialNickname(String initialNickname) {
+        if (!connected)
+            return;
         this.initialNickname = initialNickname;
     }
 
@@ -155,6 +166,8 @@ public final class IRCClient {
     }
 
     public void setUsername(String username) {
+        if (!connected)
+            return;
         this.username = username;
     }
 
@@ -163,6 +176,8 @@ public final class IRCClient {
     }
 
     public void setRealName(String realName) {
+        if (!connected)
+            return;
         this.realName = realName;
     }
 
@@ -171,11 +186,13 @@ public final class IRCClient {
     }
 
     public void setPassword(String password) {
+        if (!connected)
+            return;
         this.password = password;
     }
 
     public void connect() throws SSLException, InterruptedException {
-        if (isConnected())
+        if (connected)
             throw new IllegalStateException("Already connected!");
         try {
             if (port < 0)
@@ -204,6 +221,7 @@ public final class IRCClient {
             if (username.isEmpty())
                 sendCommand("USER", username, "0", "*", realName);
 
+            connected = true;
             onConnected.invoker().onConnected(this);
         } catch (SSLException | InterruptedException e) {
             if (group != null)
@@ -217,7 +235,7 @@ public final class IRCClient {
     }
 
     public void disconnect() {
-        if (!isConnected())
+        if (connected)
             throw new IllegalStateException("Not connected!");
         try {
             if (lastWriteFuture != null)
@@ -227,15 +245,17 @@ public final class IRCClient {
         group = null;
         ch = null;
         lastWriteFuture = null;
+
+        connected = false;
         onDisconnected.invoker().onDisconnected(this);
     }
 
     public boolean isConnected() {
-        return group != null;
+        return connected;
     }
 
     public void send(IRCMessage message) {
-        if (!isConnected())
+        if (!connected)
             throw new IllegalStateException("Not connected!");
         lastWriteFuture = ch.writeAndFlush(message + "\r\n");
     }
