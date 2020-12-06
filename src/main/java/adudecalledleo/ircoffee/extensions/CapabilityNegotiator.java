@@ -1,46 +1,63 @@
 package adudecalledleo.ircoffee.extensions;
 
 import adudecalledleo.ircoffee.IRCClient;
-import adudecalledleo.ircoffee.IRCMessage;
 import adudecalledleo.ircoffee.event.CapabilityEvents;
-import adudecalledleo.ircoffee.event.Event;
 
 import java.util.List;
+import java.util.Map;
 
-/**
- * Facilitates <a href="https://ircv3.net/specs/core/capability-negotiation">capability negotiation</a>
- * for an {@link IRCClient} instance.
- *
- * <p>Make sure the client has {@linkplain IRCClient#setCapsEnabled(boolean) capabilities enabled}!
- */
-public final class CapabilityNegotiator extends ClientExtension implements CapabilityEvents.CapMessageReceived {
+public final class CapabilityNegotiator extends ClientExtension implements
+        CapabilityEvents.CapsReceived, CapabilityEvents.EnabledCapsReceived, CapabilityEvents.CapsAcknowledged,
+        CapabilityEvents.CapsRejected, CapabilityEvents.CapsAdded, CapabilityEvents.CapsRemoved {
     @Override
     protected void doInstall(IRCClient client) {
-        client.onCapMessageReceived.register(this);
+        client.onCapsReceived.register(this);
+        client.onEnabledCapsReceived.register(this);
+        client.onCapsAcknowledged.register(this);
+        client.onCapsRejected.register(this);
+        client.onCapsAdded.register(this);
+        client.onCapsRemoved.register(this);
     }
 
     @Override
     protected void doUninstall(IRCClient client) {
-        client.onCapMessageReceived.register(this);
+        client.onCapsReceived.unregister(this);
+        client.onEnabledCapsReceived.unregister(this);
+        client.onCapsAcknowledged.unregister(this);
+        client.onCapsRejected.unregister(this);
+        client.onCapsAdded.unregister(this);
+        client.onCapsRemoved.unregister(this);
     }
 
     @Override
-    public void onCapMessageReceived(IRCClient client, IRCMessage message) {
+    public void onCapsReceived(IRCClient client, Map<String, List<String>> capMap, boolean more) {
         // TODO actually implement capability negotiation
+        // for now, let's send CAP END back so we can actually complete registration
+        client.sendCommand("CAP", "END");
     }
 
-    // TODO generic capability events
-    public final Event<CapabilityNegotiator.SASLAuthAvailable> onSASLAuthAvailable = Event.create(
-            SASLAuthAvailable.class, listeners -> (client, methods) -> {
-                for (SASLAuthAvailable listener : listeners)
-                    listener.onSASLAuthAvailable(client ,methods);
-            });
+    @Override
+    public void onEnabledCapsReceived(IRCClient client, List<String> capList, boolean more) {
 
-    /**
-     * Fired when SASL authentication becomes available, either on connection or later.
-     */
-    @FunctionalInterface
-    public interface SASLAuthAvailable {
-        void onSASLAuthAvailable(IRCClient client, List<String> methods);
+    }
+
+    @Override
+    public void onCapsAcknowledged(IRCClient client, List<String> capList) {
+
+    }
+
+    @Override
+    public void onCapsRejected(IRCClient client, List<String> capList) {
+
+    }
+
+    @Override
+    public void onCapsAdded(IRCClient client, Map<String, List<String>> capMap) {
+
+    }
+
+    @Override
+    public void onCapsRemoved(IRCClient client, List<String> capList) {
+
     }
 }

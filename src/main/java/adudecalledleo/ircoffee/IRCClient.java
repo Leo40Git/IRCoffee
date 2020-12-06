@@ -90,10 +90,35 @@ public final class IRCClient {
                 for (UserEvents.IsOnReplyReceived listener : listeners)
                     listener.onIsOnReplyReceived(client, users);
             });
-    public final Event<CapabilityEvents.CapMessageReceived> onCapMessageReceived = Event.create(
-            CapabilityEvents.CapMessageReceived.class, listeners -> (client, message) -> {
-                for (CapabilityEvents.CapMessageReceived listener : listeners)
-                    listener.onCapMessageReceived(client, message);
+    public final Event<CapabilityEvents.CapsReceived> onCapsReceived = Event.create(
+            CapabilityEvents.CapsReceived.class, listeners -> (client, capMap, more) -> {
+                for (CapabilityEvents.CapsReceived listener : listeners)
+                    listener.onCapsReceived(client, capMap, more);
+            });
+    public final Event<CapabilityEvents.EnabledCapsReceived> onEnabledCapsReceived = Event.create(
+            CapabilityEvents.EnabledCapsReceived.class, listeners -> (client, capList, more) -> {
+                for (CapabilityEvents.EnabledCapsReceived listener : listeners)
+                    listener.onEnabledCapsReceived(client, capList, more);
+            });
+    public final Event<CapabilityEvents.CapsAcknowledged> onCapsAcknowledged = Event.create(
+            CapabilityEvents.CapsAcknowledged.class, listeners -> (client, capList) -> {
+                for (CapabilityEvents.CapsAcknowledged listener : listeners)
+                    listener.onCapsAcknowledged(client, capList);
+            });
+    public final Event<CapabilityEvents.CapsRejected> onCapsRejected = Event.create(
+            CapabilityEvents.CapsRejected.class, listeners -> (client, capList) -> {
+                for (CapabilityEvents.CapsRejected listener : listeners)
+                    listener.onCapsRejected(client, capList);
+            });
+    public final Event<CapabilityEvents.CapsAdded> onCapsAdded = Event.create(
+            CapabilityEvents.CapsAdded.class, listeners -> (client, capMap) -> {
+                for (CapabilityEvents.CapsAdded listener : listeners)
+                    listener.onCapsAdded(client, capMap);
+            });
+    public final Event<CapabilityEvents.CapsRemoved> onCapsRemoved = Event.create(
+            CapabilityEvents.CapsRemoved.class, listeners -> (client, capList) -> {
+                for (CapabilityEvents.CapsRemoved listener : listeners)
+                    listener.onCapsRemoved(client, capList);
             });
 
     private String host = "127.0.0.1";
@@ -511,12 +536,63 @@ public final class IRCClient {
             return false;
         }
         if ("CAP".equals(command)) {
-            if (capsEnabled) {
-                // send to separate event channel
-                onCapMessageReceived.invoker().onCapMessageReceived(this, message);
-                return false;
+            String subcmd = message.getParam(1);
+            if ("LS".equals(subcmd)) {
+                String mapSrc = message.getParam(2);
+                boolean more = false;
+                if ("*".equals(mapSrc)) {
+                    more = true;
+                    mapSrc = message.getParam(3);
+                }
+                Map<String, List<String>> capMap = makeNameValueMap(mapSrc);
+                onCapsReceived.invoker().onCapsReceived(this, capMap, more);
+            } else if ("LIST".equals(subcmd)) {
+                String listSrc = message.getParam(2);
+                boolean more = false;
+                if ("*".equals(listSrc)) {
+                    more = true;
+                    listSrc = message.getParam(3);
+                }
+                List<String> capList = ImmutableList.copyOf(listSrc.split(" "));
+                onEnabledCapsReceived.invoker().onEnabledCapsReceived(this, capList, more);
+            } else if ("ACK".equals(subcmd) || "NAK".equals(subcmd) || "DEL".equals(subcmd)) {
+                List<String> capList = ImmutableList.copyOf(message.getParam(2).split(" "));
+                switch (subcmd) {
+                case "ACK":
+                    onCapsAcknowledged.invoker().onCapsAcknowledged(this, capList);
+                    break;
+                case "NAK":
+                    onCapsRejected.invoker().onCapsRejected(this, capList);
+                    break;
+                case "DEL":
+                    onCapsRemoved.invoker().onCapsRemoved(this, capList);
+                    break;
+                }
+            } else if ("NEW".equals(subcmd)) {
+                Map<String, List<String>> capMap = makeNameValueMap(message.getParam(2));
+                onCapsAdded.invoker().onCapsAdded(this, capMap);
             }
         }
         return true;
+    }
+
+    private Map<String, List<String>> makeNameValueMap(String source) {
+        ImmutableMap.Builder<String, List<String>> nvMapBuilder = ImmutableMap.builder();
+        String[] pairs = source.split(" ");
+        for (String key : pairs) {
+            String value = "";
+            if (key.contains("=")) {
+                String[] parts = key.split("=");
+                key = parts[0];
+                value = parts[1];
+            }
+            List<String> values;
+            if (value.isEmpty())
+                values = ImmutableList.of();
+            else
+                values = ImmutableList.copyOf(value.split(","));
+            nvMapBuilder.put(key, values);
+        }
+        return nvMapBuilder.build();
     }
 }
