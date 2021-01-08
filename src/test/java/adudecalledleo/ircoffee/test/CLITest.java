@@ -1,8 +1,8 @@
 package adudecalledleo.ircoffee.test;
 
-import adudecalledleo.ircoffee.data.IRCChannel;
 import adudecalledleo.ircoffee.IRCClient;
 import adudecalledleo.ircoffee.IRCMessage;
+import adudecalledleo.ircoffee.data.IRCChannel;
 import adudecalledleo.ircoffee.extensions.CapabilityNegotiator;
 import adudecalledleo.ircoffee.extensions.ClientExtension;
 import adudecalledleo.ircoffee.extensions.FeaturesCollector;
@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class CLITest {
@@ -108,7 +109,7 @@ public class CLITest {
         });
 
         client.setCapsEnabled(true);
-        CapabilityNegotiator capNegotiator = ClientExtension.install(CapabilityNegotiator::new, client);
+        CapabilityNegotiatorImpl capNegotiator = ClientExtension.install(CapabilityNegotiatorImpl::new, client);
 
         try(InputStreamReader isr = new InputStreamReader(System.in);
                 BufferedReader in = new BufferedReader(isr)) {
@@ -125,6 +126,33 @@ public class CLITest {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private static final class CapabilityNegotiatorImpl extends CapabilityNegotiator {
+        @Override
+        public void onCapsReceived(IRCClient client, Map<String, List<String>> capMap, boolean more) {
+            finishNegotiations(client);
+        }
+
+        @Override
+        public void onCapsAcknowledged(IRCClient client, List<String> capList) {
+
+        }
+
+        @Override
+        public void onCapsRejected(IRCClient client, List<String> capList) {
+
+        }
+
+        @Override
+        public void onCapsAdded(IRCClient client, Map<String, List<String>> capMap) {
+
+        }
+
+        @Override
+        public void onCapsRemoved(IRCClient client, List<String> capList) {
+
         }
     }
 }
