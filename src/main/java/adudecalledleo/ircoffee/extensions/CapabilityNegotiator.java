@@ -2,9 +2,9 @@ package adudecalledleo.ircoffee.extensions;
 
 import adudecalledleo.ircoffee.IRCClient;
 import adudecalledleo.ircoffee.event.CapabilityEvents;
+import com.google.common.collect.Multimap;
 
 import java.util.List;
-import java.util.Map;
 
 public abstract class CapabilityNegotiator extends ClientExtension implements
         CapabilityEvents.CapsReceived, CapabilityEvents.EnabledCapsReceived, CapabilityEvents.CapsAcknowledged,
@@ -30,7 +30,7 @@ public abstract class CapabilityNegotiator extends ClientExtension implements
     }
 
     @Override
-    public abstract void onCapsReceived(IRCClient client, Map<String, List<String>> capMap, boolean more);
+    public abstract void onCapsReceived(IRCClient client, Multimap<String, String> capMap, boolean more);
 
     @Override
     public abstract void onCapsAcknowledged(IRCClient client, List<String> capList);
@@ -39,7 +39,7 @@ public abstract class CapabilityNegotiator extends ClientExtension implements
     public abstract void onCapsRejected(IRCClient client, List<String> capList);
 
     @Override
-    public abstract void onCapsAdded(IRCClient client, Map<String, List<String>> capMap);
+    public abstract void onCapsAdded(IRCClient client, Multimap<String, String> capMap);
 
     @Override
     public abstract void onCapsRemoved(IRCClient client, List<String> capList);

@@ -3,8 +3,8 @@ package adudecalledleo.ircoffee;
 import adudecalledleo.ircoffee.data.IRCChannel;
 import adudecalledleo.ircoffee.data.IRCWhoIsReply;
 import adudecalledleo.ircoffee.event.*;
+import adudecalledleo.ircoffee.util.MultimapUtils;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static adudecalledleo.ircoffee.IRCNumerics.*;
 
@@ -455,7 +456,6 @@ public final class IRCClient {
                 onWhoIsReplyReceived.invoker().onWhoIsReplyReceived(this, whoIsBuilder.build());
             return false;
         }
-        // TODO capability negotiation
         // standalone numerics/special commands
         if (RPL_BOUNCE.equals(command)) {
             String newHost = message.getParam(1);
@@ -499,25 +499,8 @@ public final class IRCClient {
             return false;
         }
         if (RPL_ISUPPORT.equals(command)) {
-            ImmutableMap.Builder<String, List<String>> featureMapBuilder = ImmutableMap.builder();
-            for (int i = 1; i < message.getParamCount(); i++) {
-                String key = message.getParam(i);
-                if (key.contains(" "))
-                    break;
-                String value = "";
-                if (key.contains("=")) {
-                    String[] parts = key.split("=");
-                    key = parts[0];
-                    value = parts[1];
-                }
-                List<String> values;
-                if (value.isEmpty())
-                    values = ImmutableList.of();
-                else
-                    values = ImmutableList.copyOf(value.split(","));
-                featureMapBuilder.put(key, values);
-            }
-            onFeaturesAdvertised.invoker().onFeaturesAdvertised(this, featureMapBuilder.build());
+            onFeaturesAdvertised.invoker().onFeaturesAdvertised(this,
+                    MultimapUtils.deserialize(message.getParams().stream().skip(1).collect(Collectors.joining(" "))));
             return false;
         }
         if ("PING".equals(command)) {
@@ -544,8 +527,7 @@ public final class IRCClient {
                     more = true;
                     mapSrc = message.getParam(3);
                 }
-                Map<String, List<String>> capMap = makeNameValueMap(mapSrc);
-                onCapsReceived.invoker().onCapsReceived(this, capMap, more);
+                onCapsReceived.invoker().onCapsReceived(this, MultimapUtils.deserialize(mapSrc), more);
             } else if ("LIST".equals(subcmd)) {
                 String listSrc = message.getParam(2);
                 boolean more = false;
@@ -568,31 +550,10 @@ public final class IRCClient {
                     onCapsRemoved.invoker().onCapsRemoved(this, capList);
                     break;
                 }
-            } else if ("NEW".equals(subcmd)) {
-                Map<String, List<String>> capMap = makeNameValueMap(message.getParam(2));
-                onCapsAdded.invoker().onCapsAdded(this, capMap);
-            }
+            } else if ("NEW".equals(subcmd))
+                onCapsAdded.invoker().onCapsAdded(this, MultimapUtils.deserialize(message.getParam(2)));
         }
         return true;
     }
 
-    private Map<String, List<String>> makeNameValueMap(String source) {
-        ImmutableMap.Builder<String, List<String>> nvMapBuilder = ImmutableMap.builder();
-        String[] pairs = source.split(" ");
-        for (String key : pairs) {
-            String value = "";
-            if (key.contains("=")) {
-                String[] parts = key.split("=");
-                key = parts[0];
-                value = parts[1];
-            }
-            List<String> values;
-            if (value.isEmpty())
-                values = ImmutableList.of();
-            else
-                values = ImmutableList.copyOf(value.split(","));
-            nvMapBuilder.put(key, values);
-        }
-        return nvMapBuilder.build();
-    }
 }

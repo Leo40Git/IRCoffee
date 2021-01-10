@@ -6,13 +6,14 @@ import adudecalledleo.ircoffee.data.IRCChannel;
 import adudecalledleo.ircoffee.extensions.CapabilityNegotiator;
 import adudecalledleo.ircoffee.extensions.ClientExtension;
 import adudecalledleo.ircoffee.extensions.FeaturesCollector;
+import com.google.common.collect.Multimap;
 import io.netty.util.internal.StringUtil;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 
 public class CLITest {
@@ -100,7 +101,7 @@ public class CLITest {
         featuresCollector.onFeaturesUpdated.register((client1, collector) -> {
             System.err.format("Got %d features:%n", collector.getFeatureCount());
             for (String feature : collector.getAllFeatures()) {
-                List<String> params = collector.getFeatureParams(feature);
+                Collection<String> params = collector.getFeatureParams(feature);
                 if (params.isEmpty())
                     System.err.format(" - %s%n", feature);
                 else
@@ -131,7 +132,7 @@ public class CLITest {
 
     private static final class CapabilityNegotiatorImpl extends CapabilityNegotiator {
         @Override
-        public void onCapsReceived(IRCClient client, Map<String, List<String>> capMap, boolean more) {
+        public void onCapsReceived(IRCClient client, Multimap<String, String> capMap, boolean more) {
             finishNegotiations(client);
         }
 
@@ -146,7 +147,7 @@ public class CLITest {
         }
 
         @Override
-        public void onCapsAdded(IRCClient client, Map<String, List<String>> capMap) {
+        public void onCapsAdded(IRCClient client, Multimap<String, String> capMap) {
 
         }
 

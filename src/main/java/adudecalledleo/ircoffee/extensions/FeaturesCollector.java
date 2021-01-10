@@ -3,6 +3,8 @@ package adudecalledleo.ircoffee.extensions;
 import adudecalledleo.ircoffee.IRCClient;
 import adudecalledleo.ircoffee.event.CapabilityEvents;
 import adudecalledleo.ircoffee.event.Event;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 import java.util.*;
 
@@ -19,11 +21,11 @@ public final class FeaturesCollector extends ClientExtension implements Capabili
         for (Updated listener : listeners)
             listener.onFeaturesUpdated(client, collector);
     });
-    private final Map<String, List<String>> collectedFeatures;
+    private final Multimap<String, String> collectedFeatures;
     private final Set<String> keySetView;
 
     public FeaturesCollector() {
-        collectedFeatures = new HashMap<>();
+        collectedFeatures = HashMultimap.create();
         keySetView = Collections.unmodifiableSet(collectedFeatures.keySet());
     }
 
@@ -38,15 +40,15 @@ public final class FeaturesCollector extends ClientExtension implements Capabili
     }
 
     @Override
-    public void onFeaturesAdvertised(IRCClient client, Map<String, List<String>> featureMap) {
+    public void onFeaturesAdvertised(IRCClient client, Multimap<String, String> featureMap) {
         if (getClient() != client)
             return;
-        for (Map.Entry<String, List<String>> entry : featureMap.entrySet()) {
-            if (entry.getKey().startsWith("-")) {
-                this.collectedFeatures.remove(entry.getKey().substring(1));
+        for (String key : collectedFeatures.keySet()) {
+            if (key.startsWith("-")) {
+                this.collectedFeatures.removeAll(key.substring(1));
                 continue;
             }
-            this.collectedFeatures.put(entry.getKey(), entry.getValue());
+            this.collectedFeatures.putAll(key, featureMap.get(key));
         }
         onFeaturesUpdated.invoker().onFeaturesUpdated(client, this);
     }
@@ -63,7 +65,9 @@ public final class FeaturesCollector extends ClientExtension implements Capabili
         return collectedFeatures.containsKey(feature);
     }
 
-    public List<String> getFeatureParams(String feature) {
-        return collectedFeatures.getOrDefault(feature, Collections.emptyList());
+    public Collection<String> getFeatureParams(String feature) {
+        if (!collectedFeatures.containsKey(feature))
+            return Collections.emptySet();
+        return collectedFeatures.get(feature);
     }
 }
